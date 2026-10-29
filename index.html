@@ -1,0 +1,1327 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Valore Performance</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F2F5F8; --surface:#FFFFFF; --surface-2:#F7F9FB; --ink:#0F2033; --muted:#5A6B7E; --line:#D7E0EA;
+  --navy:#0E2A47; --navy-2:#163A60; --on-navy:#F2F6FA; --on-navy-muted:#A9BCD0;
+  --ice:#E5EEF7; --amber:#C98A12; --amber-soft:#FBF0D8;
+  --ok:#21704B; --ok-soft:#E1F1E8; --bad:#A93434; --bad-soft:#F7E3E3; --warn:#8A5F00; --warn-soft:#FFF3D3;
+  --focus:#2F6FB3; --input:#FFFFFF; --calc:#EEF3F8;
+  --serif:'Cambria','Source Serif 4',Georgia,serif;
+  --sans:'Calibri','Source Sans 3','Segoe UI',system-ui,sans-serif;
+  color-scheme:light;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --bg:#0A1521; --surface:#112033; --surface-2:#0E1B2B; --ink:#E6EDF4; --muted:#93A5B8; --line:#24394F;
+  --navy:#081626; --navy-2:#12304F; --on-navy:#EAF1F8; --on-navy-muted:#8FA6BD;
+  --ice:#16293E; --amber:#E2A93B; --amber-soft:#3A2D12;
+  --ok:#5FC28F; --ok-soft:#14321F; --bad:#EE8080; --bad-soft:#3A1818; --warn:#E8BC57; --warn-soft:#352812;
+  --focus:#6FA8E8; --input:#0D1A29; --calc:#15283C; color-scheme:dark; } }
+:root[data-theme="dark"]{
+  --bg:#0A1521; --surface:#112033; --surface-2:#0E1B2B; --ink:#E6EDF4; --muted:#93A5B8; --line:#24394F;
+  --navy:#081626; --navy-2:#12304F; --on-navy:#EAF1F8; --on-navy-muted:#8FA6BD;
+  --ice:#16293E; --amber:#E2A93B; --amber-soft:#3A2D12;
+  --ok:#5FC28F; --ok-soft:#14321F; --bad:#EE8080; --bad-soft:#3A1818; --warn:#E8BC57; --warn-soft:#352812;
+  --focus:#6FA8E8; --input:#0D1A29; --calc:#15283C; color-scheme:dark; }
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 120px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--navy)}
+h1,h2,h3{font-family:var(--serif);font-weight:600;line-height:1.2;margin:0}
+h1{font-size:1.65rem} h2{font-size:1.2rem} h3{font-size:1.02rem}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+
+/* Cabeçalho */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--navy);color:var(--on-navy)}
+.top-in{max-width:1320px;margin:0 auto;padding:12px 20px 0;display:flex;flex-wrap:wrap;align-items:center;gap:10px 20px}
+.brand{display:flex;align-items:baseline;gap:10px;margin-right:auto}
+.brand b{font-family:var(--serif);font-size:1.3rem;font-weight:700;letter-spacing:.01em}
+.brand span{color:var(--on-navy-muted);font-size:.9rem}
+.mes{display:flex;align-items:center;gap:8px}
+.mes select{background:var(--navy-2);border:1px solid #2B4D72;color:var(--on-navy);border-radius:8px;padding:7px 10px;min-height:38px}
+.save{font-size:.82rem;color:var(--on-navy-muted);min-width:90px;text-align:right}
+.save.err{color:#FFB4A8}
+nav.tabs{flex-basis:100%;display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+nav.tabs::-webkit-scrollbar{display:none}
+nav.tabs button{background:none;border:0;color:var(--on-navy-muted);padding:10px 14px 12px;border-bottom:3px solid transparent;white-space:nowrap;cursor:pointer;font-weight:600}
+nav.tabs button[aria-current="page"]{color:var(--on-navy);border-bottom-color:var(--amber)}
+nav.tabs button:hover{color:var(--on-navy)}
+
+main{max-width:1320px;margin:0 auto;padding:24px 20px 64px}
+.sec-head{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:flex-end;justify-content:space-between;margin-bottom:18px}
+.sub{color:var(--muted);margin:4px 0 0;max-width:70ch}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 14px;min-height:38px;cursor:pointer;font-weight:600}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--navy);border-color:var(--navy);color:var(--on-navy)}
+.btn.gold{background:var(--amber);border-color:var(--amber);color:#1B1203}
+.btn.danger{color:var(--bad)}
+.btn.sm{padding:4px 10px;min-height:30px;font-size:.88rem}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px}
+.panel+.panel{margin-top:16px}
+.muted{color:var(--muted)}
+.empty{padding:48px 24px;text-align:center}
+.empty p{color:var(--muted);max-width:52ch;margin:8px auto 18px}
+
+/* Chips de status */
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 10px;font-size:.82rem;font-weight:600;white-space:nowrap}
+.chip.habilitado{background:var(--ok-soft);color:var(--ok)}
+.chip.nao_habilitado{background:var(--bad-soft);color:var(--bad)}
+.chip.pendente{background:var(--warn-soft);color:var(--warn)}
+.chip.invalido{background:var(--bad-soft);color:var(--bad);outline:1px dashed var(--bad)}
+.chip.exc{background:var(--ice);color:var(--navy-2)}
+:root[data-theme="dark"] .chip.exc{color:var(--on-navy)}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .chip.exc{color:var(--on-navy)} }
+.chip.cat{background:var(--amber-soft);color:var(--amber)}
+.chip.st-aberto{background:var(--ok-soft);color:var(--ok)}
+.chip.st-encerrado{background:var(--ice);color:var(--muted)}
+
+/* Avatar */
+.av{border-radius:50%;object-fit:cover;flex:none;display:inline-block;vertical-align:middle}
+.av.ini{display:inline-flex;align-items:center;justify-content:center;background:var(--ice);color:var(--navy-2);font-weight:700;font-family:var(--serif)}
+:root[data-theme="dark"] .av.ini{color:var(--on-navy)}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .av.ini{color:var(--on-navy)} }
+
+/* Painel */
+.dash{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px}
+.prod-hero .big{font-family:var(--serif);font-size:clamp(1.9rem,4vw,2.6rem);font-weight:700;line-height:1.1}
+.bar{height:10px;background:var(--ice);border-radius:99px;overflow:hidden;margin:14px 0 8px}
+.bar i{display:block;height:100%;background:var(--navy-2);border-radius:99px}
+:root[data-theme="dark"] .bar i{background:#4D86C2}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .bar i{background:#4D86C2} }
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;margin-top:18px;border-top:1px solid var(--line)}
+.stats div{padding:14px 12px 4px 0}
+.stats div+div{padding-left:14px;border-left:1px solid var(--line)}
+.stats b{display:block;font-family:var(--serif);font-size:1.6rem;line-height:1.1}
+.stats span{font-size:.88rem;color:var(--muted)}
+.mini-rank{width:100%;border-collapse:collapse}
+.mini-rank td{padding:9px 6px;border-top:1px solid var(--line);vertical-align:middle}
+.mini-rank tr:first-child td{border-top:0}
+.mini-rank .pos{width:28px;color:var(--muted);font-weight:700}
+.opn{display:flex;align-items:center;gap:10px;min-width:0}
+.opn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.right{text-align:right}
+
+/* Rei da Valore */
+.rei{position:relative;background:var(--navy);color:var(--on-navy);border-radius:14px;padding:22px;overflow:hidden;border:1px solid #2A4B70}
+.rei::after{content:"";position:absolute;inset:auto -60px -80px auto;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(226,169,59,.22),transparent 65%)}
+.rei .t{font-family:var(--serif);font-size:.95rem;color:#E9C46A;letter-spacing:.02em}
+.rei .who{display:flex;align-items:center;gap:16px;margin-top:14px;position:relative;z-index:1}
+.rei .ph{position:relative;flex:none}
+.rei .ph .crown{position:absolute;left:50%;top:-30px;transform:translateX(-50%) rotate(-6deg);width:52px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))}
+.rei .ph .av{border:3px solid #E2A93B;box-shadow:0 0 0 4px rgba(226,169,59,.18)}
+.rei .nm{font-family:var(--serif);font-size:1.7rem;font-weight:700;line-height:1.1}
+.rei .meta{color:var(--on-navy-muted);font-size:.92rem;margin-top:4px}
+.rei .figs{display:flex;gap:22px;margin-top:16px;position:relative;z-index:1;flex-wrap:wrap}
+.rei .figs b{display:block;font-family:var(--serif);font-size:1.45rem;color:#F4D27A}
+.rei .figs span{font-size:.82rem;color:var(--on-navy-muted)}
+.rei.vazio{background:var(--surface);color:var(--ink);border-color:var(--line)}
+.rei.vazio .t{color:var(--amber)}
+.rei.vazio::after{display:none}
+.rei .note{position:relative;z-index:1;font-size:.82rem;color:var(--on-navy-muted);margin:14px 0 0}
+
+/* Lançamento */
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table.grid{border-collapse:separate;border-spacing:0;width:100%;min-width:1240px}
+.grid th,.grid td{padding:8px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle;font-size:.93rem}
+.grid thead th{background:var(--surface-2);font-weight:700;font-size:.82rem;color:var(--muted);position:sticky;top:0}
+.grid thead tr.metas th{font-weight:500;font-size:.78rem;color:var(--muted);padding-top:0}
+.grid .sticky{position:sticky;left:0;background:var(--surface);z-index:2;min-width:170px;box-shadow:1px 0 0 var(--line)}
+.grid thead .sticky{background:var(--surface-2);z-index:3}
+.grid input{width:100%;min-width:92px;border:1px solid var(--line);background:var(--input);border-radius:6px;padding:7px 8px;text-align:right;font-variant-numeric:tabular-nums}
+.grid input.w-brl{min-width:132px}
+.grid input.w-int{min-width:72px}
+.grid input[readonly]{background:var(--calc);border-color:transparent;color:var(--muted)}
+.grid input.bad{border-color:var(--bad);background:var(--bad-soft)}
+.grid input:disabled{background:transparent;border-color:transparent}
+.grid tr.msg td{padding:0 8px;border-bottom:1px solid var(--line);font-size:.84rem}
+.grid tr.msg td:empty{display:none}
+.grid tr.msg.vazio td{border-bottom:0;padding:0}
+.grid tr.has-msg>*{border-bottom-color:transparent}
+.grid .msgs{padding:2px 0 9px;display:flex;flex-direction:column;gap:2px}
+.grid .msgs .e{color:var(--bad)} .grid .msgs .p{color:var(--warn)} .grid .msgs .n{color:var(--muted)}
+.grid tfoot th,.grid tfoot td{background:var(--surface-2);font-weight:700;border-bottom:0}
+.grid tfoot .sticky{background:var(--surface-2)}
+.pts{font-weight:700;font-family:var(--serif);font-size:1rem}
+.linkbtn{background:none;border:0;color:var(--focus);cursor:pointer;padding:4px;font-weight:600;font-size:.86rem;white-space:nowrap}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.86rem;color:var(--muted);margin-top:12px}
+
+/* Ranking */
+.rank-list{display:flex;flex-direction:column;gap:10px}
+.rk{display:grid;grid-template-columns:46px minmax(0,1.4fr) repeat(3,minmax(0,.7fr)) minmax(0,1.6fr);gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 16px}
+.rk.king{border:2px solid var(--amber);background:linear-gradient(90deg,var(--amber-soft),var(--surface) 55%)}
+.rk .pos{font-family:var(--serif);font-size:1.5rem;font-weight:700;color:var(--muted);text-align:center}
+.rk.king .pos{color:var(--amber)}
+.rk .lbl{font-size:.76rem;color:var(--muted);display:block}
+.rk .val{font-weight:700}
+.inds{display:flex;flex-wrap:wrap;gap:4px}
+.ind{font-size:.76rem;border-radius:6px;padding:2px 7px;background:var(--ice);color:var(--muted);white-space:nowrap}
+.ind.ok{background:var(--ok-soft);color:var(--ok)}
+.ind.no{background:var(--bad-soft);color:var(--bad)}
+.ind.pd{background:var(--warn-soft);color:var(--warn)}
+.group-t{margin:26px 0 10px;display:flex;align-items:baseline;gap:10px}
+
+/* Histórico */
+.filters{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.field{display:flex;flex-direction:column;gap:4px;font-size:.86rem;color:var(--muted)}
+.field input,.field select,.field textarea{border:1px solid var(--line);background:var(--input);border-radius:8px;padding:8px 10px;min-height:38px;color:var(--ink)}
+.field textarea{min-height:80px;resize:vertical}
+.hist-grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px;margin-top:16px}
+table.plain{width:100%;border-collapse:collapse;font-size:.92rem}
+table.plain th,table.plain td{padding:8px 8px;border-bottom:1px solid var(--line);text-align:left}
+table.plain th{font-size:.8rem;color:var(--muted);font-weight:700}
+.scroll-x{overflow-x:auto}
+svg.chart text{fill:var(--muted);font-size:11px;font-family:var(--sans)}
+
+/* Configurações */
+.cfg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
+.ind-card{border:1px solid var(--line);border-radius:10px;padding:14px;background:var(--surface-2)}
+.ind-card h3{margin-bottom:10px}
+.ind-card .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ops-table input,.ops-table select{border:1px solid var(--line);background:var(--input);border-radius:6px;padding:6px 8px;width:100%;min-width:90px}
+.errs{background:var(--bad-soft);color:var(--bad);border-radius:8px;padding:10px 14px;margin:12px 0;font-size:.92rem}
+.tests li{padding:6px 0;border-bottom:1px solid var(--line);list-style:none}
+.tests{padding:0;margin:10px 0 0}
+.tests .ok{color:var(--ok);font-weight:700} .tests .no{color:var(--bad);font-weight:700}
+
+/* Modal e aviso */
+.modal-bg{position:fixed;inset:0;background:rgba(5,14,24,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
+.modal{background:var(--surface);color:var(--ink);border-radius:14px;max-width:560px;width:100%;max-height:calc(100% - 32px);overflow:auto;padding:22px;border:1px solid var(--line)}
+.modal h2{margin-bottom:6px}
+.modal .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.modal .foot{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;flex-wrap:wrap}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--navy);color:var(--on-navy);padding:10px 16px;border-radius:10px;z-index:60;font-size:.92rem;box-shadow:0 6px 24px rgba(0,0,0,.25);max-width:calc(100% - 32px)}
+.ro-banner{background:var(--warn-soft);color:var(--warn);border-radius:8px;padding:8px 12px;margin-bottom:14px;font-size:.92rem}
+
+@media (max-width:980px){
+  .dash,.hist-grid{grid-template-columns:1fr}
+  .rk{grid-template-columns:40px minmax(0,1fr) auto;row-gap:8px}
+  .rk .c-hide{display:none}
+  .rk .inds-wrap{grid-column:2 / -1}
+}
+@media (max-width:640px){
+  main{padding:18px 14px 56px}
+  .top-in{padding:10px 14px 0}
+  .brand span{display:none}
+  h1{font-size:1.35rem}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .stats div:nth-child(3){border-left:0;padding-left:0}
+  .modal .grid2{grid-template-columns:1fr}
+  .rei .nm{font-size:1.4rem}
+}
+#login{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--navy)}
+#login[hidden]{display:none}
+#login form{width:100%;max-width:380px;background:var(--surface);color:var(--ink);border-radius:14px;padding:28px;border:1px solid var(--line);box-shadow:0 20px 60px rgba(0,0,0,.3)}
+#login h1{font-family:var(--serif);font-size:1.5rem;margin:0 0 2px;color:var(--ink)}
+#login .sub{color:var(--muted);margin:0 0 22px;font-size:.92rem}
+#login .bar-ouro{height:4px;width:48px;background:var(--amber);border-radius:2px;margin-bottom:16px}
+#login label{display:block;font-weight:600;font-size:.9rem;margin:12px 0 4px}
+#login input{width:100%;box-sizing:border-box;padding:10px 12px;min-height:42px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--ink);font:inherit}
+#login input:focus{outline:2px solid var(--amber);outline-offset:1px}
+#login .btn{width:100%;margin-top:20px;min-height:44px}
+#login .err{color:var(--bad);font-size:.88rem;min-height:1.3em;margin-top:10px}
+#logoutBtn{background:transparent;border:1px solid #2B4D72;color:var(--on-navy-muted);border-radius:8px;padding:6px 12px;cursor:pointer;font:inherit;font-size:.85rem}
+#logoutBtn:hover{color:var(--on-navy)}
+@media (prefers-reduced-motion:no-preference){ .rei .crown{animation:drop .7s cubic-bezier(.2,.8,.2,1.2) both} @keyframes drop{from{transform:translate(-50%,-14px) rotate(-14deg);opacity:0}} }
+</style>
+</head>
+<body>
+<div id="login" hidden>
+  <form id="loginForm" novalidate>
+    <div class="bar-ouro"></div>
+    <h1>Valore Performance</h1>
+    <p class="sub">Premiação e ranking de operadores</p>
+    <label for="lgUser">Login</label>
+    <input id="lgUser" type="email" autocomplete="username" required>
+    <label for="lgPass">Senha</label>
+    <input id="lgPass" type="password" autocomplete="current-password" required>
+    <button class="btn primary" type="submit">Entrar</button>
+    <div class="err" id="lgErr" role="alert"></div>
+    <p class="sub" id="lgCfg" hidden style="margin:14px 0 0">Sistema ainda não conectado ao Supabase: preencha SUPABASE_URL e SUPABASE_ANON_KEY no início do arquivo index.html.</p>
+  </form>
+</div>
+<header class="top">
+  <div class="top-in">
+    <div class="brand"><b>Valore Performance</b><span>Premiação e ranking de operadores</span></div>
+    <div class="mes"><label for="mesSel" class="save" style="min-width:0">Mês</label><select id="mesSel" aria-label="Mês de apuração"></select></div>
+    <div class="save" id="saveSt" aria-live="polite"></div>
+    <button id="logoutBtn" type="button">Sair</button>
+    <nav class="tabs" aria-label="Seções">
+      <button data-tab="painel">Painel</button>
+      <button data-tab="lancamento">Lançamento</button>
+      <button data-tab="ranking">Ranking e premiação</button>
+      <button data-tab="historico">Histórico</button>
+      <button data-tab="config">Configurações</button>
+    </nav>
+  </div>
+</header>
+<main id="view"><div class="empty"><p>Carregando dados…</p></div></main>
+<div id="modalRoot"></div>
+<div id="toastRoot" aria-live="polite"></div>
+<script>
+// ===== VALORE PERFORMANCE — motor de cálculo (funções puras, sem DOM) =====
+const VP = (function () {
+  const EPS = 1e-9;
+  const isNum = v => typeof v === 'number' && isFinite(v);
+  const clone = o => JSON.parse(JSON.stringify(o));
+  const INDICADORES = ['producao', 'ativacao', 'inadimplencia', 'dut'];
+  const NOMES = { producao: 'Produção', ativacao: 'Lojas ativas', inadimplencia: 'B1/B2/B3', dut: 'Recuperação DUT' };
+
+  const DEFAULT_PARAMS = {
+    base: 100,
+    indicadores: {
+      producao:      { meta: 1000000, peso: 40, passo: 10, pontosPorPasso: 4,   limite: 40 },
+      ativacao:      { meta: 50,      peso: 20, passo: 5,  pontosPorPasso: 2,   limite: 20 },
+      inadimplencia: { meta: 33700,   peso: 25, passo: 10, pontosPorPasso: 2.5, limite: 25 },
+      dut:           { meta: 70,      peso: 15, passo: 5,  pontosPorPasso: 1.5, limite: 15 }
+    },
+    faixas: [
+      { nome: 'Bronze', min: 100, valor: 500 },
+      { nome: 'Prata', min: 110, valor: 750 },
+      { nome: 'Ouro', min: 120, valor: 1000 },
+      { nome: 'Diamante', min: 130, valor: 1500 },
+      { nome: 'Elite', min: 140, valor: 2000 },
+      { nome: 'Faixa máxima', min: 150, valor: 2500 }
+    ],
+    desempate: ['producao', 'inadimplencia', 'ativacao', 'dut'],
+    metasIndividuais: {}
+  };
+  const DEFAULT_OPERADORES = ['Allan', 'Junior', 'Fábio', 'Ronaldo', 'Claudia', 'Anderson', 'Martinez']
+    .map((n, i) => ({ id: 'op' + (i + 1), nome: n, regiao: '', status: 'ativo', foto: '' }));
+
+  // Metas efetivas: padrão → meta individual do operador → exceção autorizada do mês (com justificativa)
+  function metasEfetivas(params, opId, excecao) {
+    const ind = params.indicadores;
+    const m = {}; INDICADORES.forEach(k => (m[k] = ind[k].meta));
+    const indiv = (params.metasIndividuais || {})[opId] || {};
+    INDICADORES.forEach(k => { if (isNum(indiv[k])) m[k] = indiv[k]; });
+    if (excecao && String(excecao.justificativa || '').trim()) INDICADORES.forEach(k => { if (isNum(excecao[k])) m[k] = excecao[k]; });
+    return m;
+  }
+
+  function extras(cfg, delta) { // delta medido na unidade do "passo"
+    if (!(cfg.passo > 0)) return 0;
+    return Math.min(cfg.limite, Math.max(0, (delta / cfg.passo) * cfg.pontosPorPasso));
+  }
+
+  function faixaPara(pontuacao, faixas) {
+    const fs = [...faixas].sort((a, b) => a.min - b.min);
+    let f = null; for (const x of fs) if (pontuacao + EPS >= x.min) f = x;
+    return f;
+  }
+
+  // Resolve um percentual a partir de contagens (prioridade) ou do valor informado diretamente
+  function resolverPct(total, parte, direto, excecao, rotulos, erros, pend) {
+    const temExc = !!(excecao && String(excecao.justificativa || '').trim());
+    [[total, rotulos.total], [parte, rotulos.parte]].forEach(([v, l]) => {
+      if (isNum(v) && v < 0) erros.push(l + ' não pode ser negativo.');
+      else if (isNum(v) && !Number.isInteger(v)) erros.push(l + ' deve ser um número inteiro.');
+    });
+    if (isNum(direto) && (direto < 0 || direto > 100)) erros.push(rotulos.pct + ' deve estar entre 0% e 100%.');
+    if (isNum(total) && isNum(parte) && parte > total) erros.push(rotulos.maior);
+    if (isNum(total) && isNum(parte)) {
+      if (total === 0) {
+        if (temExc && isNum(direto)) return { v: direto, fonte: 'direto' };
+        pend.push(rotulos.zero);
+        return { v: null, fonte: null };
+      }
+      return { v: (parte * 100) / total, fonte: 'calculado' };
+    }
+    if (isNum(direto)) return { v: direto, fonte: 'direto' };
+    pend.push(rotulos.falta);
+    return { v: null, fonte: null };
+  }
+
+  function calcularOperador(entry, params, opId) {
+    const e = entry || {};
+    const erros = [], pend = [];
+    const exc = e.excecao && String(e.excecao.justificativa || '').trim() ? e.excecao : null;
+    const metas = metasEfetivas(params, opId, exc);
+    const ind = params.indicadores;
+
+    const producao = isNum(e.producao) ? e.producao : null;
+    const inad = isNum(e.inadimplencia) ? e.inadimplencia : null;
+    if (producao !== null && producao < 0) erros.push('Produção não pode ser negativa.');
+    if (inad !== null && inad < 0) erros.push('B1/B2/B3 não pode ser negativo.');
+    if (producao === null) pend.push('Informe a produção paga.');
+    if (inad === null) pend.push('Informe o valor inadimplente B1/B2/B3 (use 0 se não houver).');
+
+    const at = resolverPct(e.lojasTotal, e.lojasAtivas, e.ativPctDireto, exc, {
+      total: 'Total de lojas', parte: 'Lojas ativas', pct: 'O % de ativação',
+      maior: 'Lojas ativas maiores que o total de lojas.',
+      zero: 'Carteira sem lojas válidas: requer validação da gestão (registre uma exceção com justificativa e informe o % apurado).',
+      falta: 'Informe total e lojas ativas, ou o % de ativação apurado.'
+    }, erros, pend);
+    const du = resolverPct(e.dutElig, e.dutRec, e.dutPctDireto, exc, {
+      total: 'DUTs elegíveis', parte: 'DUTs recuperados', pct: 'O % de recuperação DUT',
+      maior: 'DUTs recuperados maiores que os elegíveis.',
+      zero: 'Sem DUTs elegíveis: requer validação da gestão (registre uma exceção com justificativa e informe o % apurado).',
+      falta: 'Informe DUTs elegíveis e recuperados, ou o % de recuperação.'
+    }, erros, pend);
+
+    const valores = { producao, ativacao: at.v, inadimplencia: inad, dut: du.v };
+    const atingidos = {
+      producao: producao === null ? null : producao + EPS >= metas.producao,
+      ativacao: at.v === null ? null : at.v + EPS >= metas.ativacao,
+      inadimplencia: inad === null ? null : inad <= metas.inadimplencia + EPS,
+      dut: du.v === null ? null : du.v + EPS >= metas.dut
+    };
+    const prodRatio = producao !== null && metas.producao > 0 ? producao / metas.producao : null;
+
+    const out = { status: null, erros, pendencias: pend, metas, valores, fontes: { ativacao: at.fonte, dut: du.fonte },
+      atingidos, prodRatio, extras: null, pontuacao: null, faixa: null, premio: 0, motivos: [], excecao: !!exc };
+
+    if (erros.length) { out.status = 'invalido'; return out; }
+    if (pend.length) { out.status = 'pendente'; return out; }
+
+    INDICADORES.forEach(k => { if (!atingidos[k]) out.motivos.push(k); });
+    if (out.motivos.length) { out.status = 'nao_habilitado'; return out; }
+
+    const ex = {
+      producao: extras(ind.producao, (prodRatio - 1) * 100),
+      ativacao: extras(ind.ativacao, at.v - metas.ativacao),
+      inadimplencia: metas.inadimplencia > 0 ? extras(ind.inadimplencia, (1 - inad / metas.inadimplencia) * 100) : 0,
+      dut: extras(ind.dut, du.v - metas.dut)
+    };
+    out.extras = ex;
+    out.pontuacao = params.base + ex.producao + ex.ativacao + ex.inadimplencia + ex.dut; // sem arredondamento
+    out.faixa = faixaPara(out.pontuacao, params.faixas);
+    out.premio = out.faixa ? out.faixa.valor : 0;
+    out.status = 'habilitado';
+    return out;
+  }
+
+  function compararElegiveis(a, b, ordem) {
+    const d = b.r.pontuacao - a.r.pontuacao;
+    if (Math.abs(d) > EPS) return d;
+    for (const k of ordem) {
+      let x = 0;
+      if (k === 'producao') x = b.r.prodRatio - a.r.prodRatio;
+      else if (k === 'inadimplencia') x = a.r.valores.inadimplencia - b.r.valores.inadimplencia;
+      else if (k === 'ativacao') x = b.r.valores.ativacao - a.r.valores.ativacao;
+      else if (k === 'dut') x = b.r.valores.dut - a.r.valores.dut;
+      if (Math.abs(x) > EPS) return x;
+    }
+    return 0;
+  }
+
+  // linhas: [{id, r}] → ranking, Rei da Valore e empates não resolvidos
+  function rankear(linhas, params, reiManual) {
+    const ordem = params.desempate || DEFAULT_PARAMS.desempate;
+    const eleg = linhas.filter(l => l.r.status === 'habilitado').sort((a, b) => compararElegiveis(a, b, ordem));
+    const pesoStatus = { nao_habilitado: 0, pendente: 1, invalido: 2 };
+    const outros = linhas.filter(l => l.r.status !== 'habilitado')
+      .sort((a, b) => (pesoStatus[a.r.status] - pesoStatus[b.r.status]) || ((b.r.valores.producao || 0) - (a.r.valores.producao || 0)));
+    const empates = [];
+    eleg.forEach((l, i) => {
+      l.posicao = i + 1;
+      if (i > 0 && compararElegiveis(eleg[i - 1], l, ordem) === 0) {
+        l.posicao = eleg[i - 1].posicao;
+        const g = empates.find(g => g.includes(eleg[i - 1].id));
+        if (g) g.push(l.id); else empates.push([eleg[i - 1].id, l.id]);
+      }
+    });
+    let rei = null, empateRei = null;
+    if (eleg.length) {
+      const topo = empates.find(g => g.includes(eleg[0].id));
+      if (!topo) rei = eleg[0].id;
+      else if (reiManual && topo.includes(reiManual)) rei = reiManual;
+      else empateRei = topo;
+    }
+    return { elegiveis: eleg, outros, rei, empateRei, empates };
+  }
+
+  // ===== Cenários obrigatórios (seção 13) =====
+  function executarTestes() {
+    const P = clone(DEFAULT_PARAMS);
+    const base = { producao: 1000000, lojasTotal: 100, lojasAtivas: 50, inadimplencia: 33700, dutElig: 10, dutRec: 7 };
+    const T = [];
+    const t = (nome, fn) => { try { const [ok, det] = fn(); T.push({ nome, ok: !!ok, detalhe: det }); } catch (err) { T.push({ nome, ok: false, detalhe: 'Erro: ' + err.message }); } };
+    t('1. Atinge exatamente as quatro metas → 100 pontos e R$ 500', () => {
+      const r = calcularOperador(base, P, 'x');
+      return [r.status === 'habilitado' && Math.abs(r.pontuacao - 100) < EPS && r.premio === 500, `${r.status}, ${r.pontuacao} pts, R$ ${r.premio}`];
+    });
+    t('2. Supera todos os indicadores → extras e premiação progressiva', () => {
+      const r = calcularOperador({ producao: 1300000, lojasTotal: 100, lojasAtivas: 60, inadimplencia: 20000, dutElig: 10, dutRec: 8 }, P, 'x');
+      const esperado = 100 + 12 + 4 + (1 - 20000 / 33700) * 25 + 3;
+      return [r.status === 'habilitado' && Math.abs(r.pontuacao - esperado) < 1e-6 && r.faixa.nome === 'Ouro' && r.premio === 1000, `${r.pontuacao.toFixed(4)} pts, ${r.faixa.nome}, R$ ${r.premio}`];
+    });
+    t('3. R$ 1,5 mi de produção com R$ 40 mil de B1/B2/B3 → sem bônus', () => {
+      const r = calcularOperador({ ...base, producao: 1500000, inadimplencia: 40000 }, P, 'x');
+      return [r.status === 'nao_habilitado' && r.premio === 0 && r.motivos.includes('inadimplencia'), `${r.status}, R$ ${r.premio}`];
+    });
+    t('4. Três indicadores ok, DUT em 69% → sem bônus', () => {
+      const r = calcularOperador({ ...base, dutElig: 100, dutRec: 69 }, P, 'x');
+      return [r.status === 'nao_habilitado' && r.premio === 0 && r.motivos.join() === 'dut', `${r.status}, motivos: ${r.motivos.join(', ')}`];
+    });
+    t('5. Dados incompletos → apuração pendente, sem pagamento', () => {
+      const r = calcularOperador({ producao: 1200000, lojasTotal: 100, lojasAtivas: 60 }, P, 'x');
+      return [r.status === 'pendente' && r.premio === 0 && r.pontuacao === null, `${r.status}, ${r.pendencias.length} pendência(s)`];
+    });
+    t('6. Empate na pontuação → critérios de desempate; empate total sinalizado', () => {
+      const A = calcularOperador({ ...base, producao: 1100000 }, P, 'a');            // 104 pts via produção
+      const B = calcularOperador({ ...base, lojasAtivas: 60 }, P, 'b');              // 104 pts via ativação
+      const rk = rankear([{ id: 'b', r: B }, { id: 'a', r: A }], P, null);
+      const C = calcularOperador(base, P, 'c'), D = calcularOperador(base, P, 'd');
+      const rk2 = rankear([{ id: 'c', r: C }, { id: 'd', r: D }], P, null);
+      const rk3 = rankear([{ id: 'c', r: C }, { id: 'd', r: D }], P, 'd');
+      return [rk.rei === 'a' && rk2.rei === null && rk2.empateRei.length === 2 && rk3.rei === 'd',
+        `desempate por produção → ${rk.rei}; empate total → decisão da gestão; escolha manual → ${rk3.rei}`];
+    });
+    t('7. Ninguém atinge os quatro indicadores → sem Rei', () => {
+      const r1 = calcularOperador({ ...base, producao: 900000 }, P, 'a');
+      const r2 = calcularOperador({ ...base, dutRec: 6 }, P, 'b');
+      const rk = rankear([{ id: 'a', r: r1 }, { id: 'b', r: r2 }], P, null);
+      return [rk.rei === null && rk.empateRei === null && rk.elegiveis.length === 0, 'Nenhum Rei da Valore neste mês'];
+    });
+    t('8. Mês encerrado preserva parâmetros e resultados', () => {
+      const mes = { params: clone(P), entries: { x: base } };
+      const antes = calcularOperador(mes.entries.x, mes.params, 'x').premio;
+      const configAtual = clone(P); configAtual.faixas[0].valor = 900; configAtual.indicadores.producao.meta = 2000000;
+      const depois = calcularOperador(mes.entries.x, mes.params, 'x').premio;
+      const comNova = calcularOperador(mes.entries.x, configAtual, 'x').status;
+      return [antes === 500 && depois === 500 && comNova === 'nao_habilitado', `mês guardado: R$ ${depois}; com regra nova seria: ${comNova}`];
+    });
+    t('9. Rejeita >100%, negativos, ativas > total, recuperados > elegíveis', () => {
+      const a = calcularOperador({ ...base, lojasTotal: undefined, lojasAtivas: undefined, ativPctDireto: 120 }, P, 'x');
+      const b = calcularOperador({ ...base, producao: -5 }, P, 'x');
+      const c = calcularOperador({ ...base, lojasAtivas: 120 }, P, 'x');
+      const d = calcularOperador({ ...base, dutRec: 11 }, P, 'x');
+      return [[a, b, c, d].every(r => r.status === 'invalido' && r.premio === 0), [a, b, c, d].map(r => r.erros[0]).join(' | ')];
+    });
+    t('10. Denominador zero exige validação da gestão', () => {
+      const a = calcularOperador({ ...base, lojasTotal: 0, lojasAtivas: 0 }, P, 'x');
+      const b = calcularOperador({ ...base, dutElig: 0, dutRec: 0 }, P, 'x');
+      const c = calcularOperador({ ...base, lojasTotal: 0, lojasAtivas: 0, ativPctDireto: 55, excecao: { justificativa: 'Carteira em transição, validado pela diretoria' } }, P, 'x');
+      return [a.status === 'pendente' && b.status === 'pendente' && c.status === 'habilitado', `sem validação: ${a.status}/${b.status}; com validação: ${c.status}`];
+    });
+    return T;
+  }
+
+  return { EPS, isNum, clone, INDICADORES, NOMES, DEFAULT_PARAMS, DEFAULT_OPERADORES, metasEfetivas, calcularOperador, faixaPara, rankear, compararElegiveis, executarTestes };
+})();
+if (typeof module !== 'undefined') module.exports = VP;
+
+// ===== CONEXÃO COM O SUPABASE — preencha com os dados do seu projeto =====
+// Supabase > Project Settings > API: copie "Project URL" e a chave "anon public".
+const SUPABASE_URL = 'https://dnqyfvstknnvxtupwgcc.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_GxvE2AN_s0Z8x162EaWCOA_NBsPXKjh';
+// ==========================================================================
+
+// ===== VALORE PERFORMANCE — aplicação =====
+(function () {
+'use strict';
+const { isNum, clone, INDICADORES, NOMES } = VP;
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const view = $('#view');
+const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+const fBRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+const f2 = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fInt = new Intl.NumberFormat('pt-BR');
+const trunc2 = v => Math.floor(v * 100 + 1e-7) / 100; // exibição sem arredondar para cima
+const brl = v => isNum(v) ? fBRL.format(v) : '—';
+const pct = v => isNum(v) ? f2.format(v) + '%' : '—';
+const pts = v => isNum(v) ? f2.format(trunc2(v)) : '—';
+const mesLabel = id => { const [a, m] = id.split('-'); return `${MESES[+m - 1]}/${a}`; };
+const mesCurto = id => { const [a, m] = id.split('-'); return `${MESES[+m - 1].slice(0, 3)}/${a.slice(2)}`; };
+const STATUS_TXT = { habilitado: 'Habilitado', nao_habilitado: 'Não habilitado à premiação', pendente: 'Apuração pendente', invalido: 'Dados inválidos' };
+
+// ---------- Estado ----------
+const S = { config: null, months: {}, cur: null, tab: 'painel', mode: 'local', canWrite: true,
+  cfgLoaded: false, monthsLoaded: false, dirty: new Set(), filtros: { op: '', ano: '', mes: '' }, cfgDraft: null, cfgErros: [], testes: null };
+
+// ---------- Persistência ----------
+const TABELA = 'valore_docs';
+const SB_OK = /^https:\/\/.+/.test(SUPABASE_URL) && SUPABASE_ANON_KEY.length > 30 && !!window.supabase;
+const sb = SB_OK ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+const Store = {
+  channel: null,
+  aplicar(id, data) {
+    if (id === 'config') {
+      if (!S.dirty.has('__config')) S.config = data ? normalizarConfig(clone(data)) : null;
+    } else if (id.startsWith('mes:')) {
+      const mid = id.slice(4);
+      if (S.dirty.has(mid)) return;
+      if (data) S.months[mid] = clone(data); else delete S.months[mid];
+    }
+  },
+  async init() {
+    S.mode = 'db';
+    view.innerHTML = '<div class="empty"><p>Carregando dados…</p></div>';
+    const { data, error } = await sb.from(TABELA).select('id,data');
+    if (error) {
+      view.innerHTML = `<div class="panel empty"><h1>Não foi possível carregar os dados</h1><p>${esc(error.message)}</p><p class="muted">Confira se o script SQL de instalação foi executado no Supabase.</p><button class="btn primary" onclick="location.reload()">Tentar de novo</button></div>`;
+      return;
+    }
+    S.config = null; S.months = {};
+    (data || []).forEach(r => this.aplicar(r.id, r.data));
+    S.cfgLoaded = S.monthsLoaded = true; afterData();
+    this.channel = sb.channel('valore-docs')
+      .on('postgres_changes', { event: '*', schema: 'public', table: TABELA }, p => {
+        if (p.eventType === 'DELETE') this.aplicar(p.old && p.old.id || '', null);
+        else if (p.new) this.aplicar(p.new.id, p.new.data);
+        afterData();
+      })
+      .subscribe();
+  },
+  async write(kind, id, data) {
+    const row = { id: kind === 'config' ? 'config' : 'mes:' + id, data: clone(data), updated_at: new Date().toISOString() };
+    let { error } = await sb.from(TABELA).upsert(row);
+    if (error && !/42501|401|403|JWT/i.test(String(error.code) + error.message)) {
+      await new Promise(r => setTimeout(r, 600 + Math.random() * 800));
+      ({ error } = await sb.from(TABELA).upsert(row));
+    }
+    if (error) throw { code: /42501|401|403|JWT/i.test(String(error.code) + error.message) ? 'invalid_argument' : 'unavailable', message: error.message };
+  },
+  async remove(id) {
+    const { error } = await sb.from(TABELA).delete().eq('id', 'mes:' + id);
+    if (error) throw { code: 'unavailable', message: error.message };
+  }
+};
+function dbFalhou(err) {
+  if (err && err.code === 'revoked') { S.canWrite = false; toast('Acesso aos dados encerrado nesta sessão.'); render(); }
+}
+function normalizarConfig(c) {
+  const d = VP.DEFAULT_PARAMS;
+  c.params = c.params || clone(d);
+  c.params.indicadores = Object.assign(clone(d.indicadores), c.params.indicadores || {});
+  c.params.faixas = c.params.faixas && c.params.faixas.length ? c.params.faixas : clone(d.faixas);
+  c.params.desempate = c.params.desempate || clone(d.desempate);
+  c.params.metasIndividuais = c.params.metasIndividuais || {};
+  if (!isNum(c.params.base)) c.params.base = d.base;
+  c.operadores = c.operadores || [];
+  return c;
+}
+
+// Fila de gravação: uma escrita por vez por documento, agrupando digitação
+const timers = {}; let chain = Promise.resolve();
+function setSave(st, msg) {
+  const el = $('#saveSt'); el.classList.toggle('err', st === 'error');
+  el.textContent = st === 'saving' ? 'Salvando…' : st === 'saved' ? (S.mode === 'db' ? 'Salvo' : 'Salvo neste navegador') : st === 'error' ? (msg || 'Falha ao salvar') : '';
+}
+function queueSave(id, delay = 700) {
+  if (!S.canWrite) return;
+  S.dirty.add(id); setSave('saving');
+  clearTimeout(timers[id]); timers[id] = setTimeout(() => flush(id), delay);
+}
+function flush(id) {
+  clearTimeout(timers[id]); timers[id] = null;
+  chain = chain.then(() => id === '__config' ? Store.write('config', null, S.config) : Store.write('mes', id, S.months[id]))
+    .then(() => { if (!timers[id]) S.dirty.delete(id); setSave('saved'); })
+    .catch(e => {
+      S.dirty.delete(id);
+      if (e && e.code === 'invalid_argument') { S.canWrite = false; setSave('error', 'Sem permissão de gravação'); render(); }
+      else if (e && e.code === 'quota_exceeded') setSave('error', 'Limite de armazenamento atingido');
+      else setSave('error', 'Falha ao salvar — tente novamente');
+    });
+  return chain;
+}
+function flushAll() { return Promise.all(Object.keys(timers).filter(k => timers[k]).map(flush)); }
+
+// ---------- Utilidades de domínio ----------
+const opPorId = id => (S.config?.operadores || []).find(o => o.id === id);
+const fotoDe = id => opPorId(id)?.foto || '';
+function opsDoMes(m) {
+  if (m.operadores) return m.operadores.map(o => ({ ...o, foto: fotoDe(o.id) }));
+  const ativos = S.config.operadores.filter(o => o.status === 'ativo');
+  const extra = Object.keys(m.entries || {}).filter(id => !ativos.some(o => o.id === id)).map(opPorId).filter(Boolean);
+  return [...ativos, ...extra];
+}
+function apurar(m) {
+  const ops = opsDoMes(m);
+  const linhas = ops.map(o => ({ id: o.id, op: o, r: VP.calcularOperador((m.entries || {})[o.id], m.params, o.id) }));
+  const rk = VP.rankear(linhas, m.params, m.reiManual);
+  const tot = { producao: 0, meta: 0, elegiveis: 0, nao: 0, pendentes: 0, custo: 0 };
+  linhas.forEach(l => {
+    if (isNum(l.r.valores.producao)) tot.producao += l.r.valores.producao;
+    tot.meta += l.r.metas.producao;
+    if (l.r.status === 'habilitado') { tot.elegiveis++; tot.custo += l.r.premio; }
+    else if (l.r.status === 'nao_habilitado') tot.nao++;
+    else tot.pendentes++;
+  });
+  return { ops, linhas, rk, tot };
+}
+const curMonth = () => S.cur ? S.months[S.cur] : null;
+const mesesOrdenados = () => Object.keys(S.months).sort().reverse();
+
+// ---------- Componentes ----------
+let crownN = 0;
+function crown(cls = 'crown') {
+  const g = 'cg' + (++crownN);
+  return `<svg class="${cls}" viewBox="0 0 64 50" aria-hidden="true"><defs><linearGradient id="${g}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FCE49A"/><stop offset=".55" stop-color="#E2A92B"/><stop offset="1" stop-color="#A06C0C"/></linearGradient></defs><path d="M7 40 3 14l15 12L32 6l14 20 15-12-4 26Z" fill="url(#${g})" stroke="#7E5408" stroke-width="1.6" stroke-linejoin="round"/><rect x="7" y="40" width="50" height="7" rx="2" fill="url(#${g})" stroke="#7E5408" stroke-width="1.6"/><circle cx="3" cy="13" r="3.2" fill="#FCE49A" stroke="#7E5408"/><circle cx="32" cy="5" r="3.6" fill="#FCE49A" stroke="#7E5408"/><circle cx="61" cy="13" r="3.2" fill="#FCE49A" stroke="#7E5408"/><circle cx="32" cy="34" r="3" fill="#B3263A"/><circle cx="19" cy="35" r="2.2" fill="#2A6FB3"/><circle cx="45" cy="35" r="2.2" fill="#2A6FB3"/></svg>`;
+}
+function avatar(op, size = 36) {
+  const f = op.foto || fotoDe(op.id);
+  if (f) return `<img class="av" src="${esc(f)}" width="${size}" height="${size}" alt="">`;
+  const ini = String(op.nome || '?').split(/\s+/).map(p => p[0]).slice(0, 2).join('').toUpperCase();
+  return `<span class="av ini" style="width:${size}px;height:${size}px;font-size:${Math.round(size * .4)}px" aria-hidden="true">${esc(ini)}</span>`;
+}
+const chip = st => `<span class="chip ${st}">${STATUS_TXT[st]}</span>`;
+function indChips(r) {
+  return `<div class="inds">${INDICADORES.map(k => {
+    const a = r.atingidos[k]; const c = a === null ? 'pd' : a ? 'ok' : 'no';
+    const s = a === null ? '?' : a ? '✓' : '✗';
+    return `<span class="ind ${c}" title="${esc(NOMES[k])}: ${a === null ? 'sem dado' : a ? 'atingido' : 'não atingido'}">${s} ${esc(NOMES[k])}</span>`;
+  }).join('')}</div>`;
+}
+function reiCard(m, ap, compacto) {
+  const { rk, linhas } = ap;
+  if (rk.rei) {
+    const l = linhas.find(x => x.id === rk.rei);
+    return `<div class="rei"><div class="t">Rei da Valore — operador do mês · ${esc(mesLabel(m.id))}</div>
+      <div class="who"><div class="ph">${crown()}${avatar(l.op, compacto ? 64 : 84)}</div>
+      <div><div class="nm">${esc(l.op.nome)}</div><div class="meta">${esc(l.op.regiao || 'Região não informada')}${m.reiManual === rk.rei ? ' · definido pela gestão no desempate' : ''}</div></div></div>
+      <div class="figs"><div><b class="num">${pts(l.r.pontuacao)}</b><span>pontos</span></div><div><b>${esc(l.r.faixa?.nome || '—')}</b><span>categoria</span></div><div><b class="num">${brl(l.r.premio)}</b><span>premiação</span></div></div>
+      <p class="note">A coroa é simbólica e não soma valor ao bônus da faixa.</p></div>`;
+  }
+  if (rk.empateRei) {
+    const nomes = rk.empateRei.map(id => linhas.find(x => x.id === id).op);
+    const pode = S.canWrite && m.status !== 'encerrado';
+    return `<div class="rei vazio"><div class="t">Rei da Valore — empate técnico</div>
+      <p class="sub">${nomes.map(o => esc(o.nome)).join(' e ')} empataram em pontuação e em todos os critérios de desempate. A decisão é da gestão.</p>
+      ${pode ? `<div class="actions" style="margin-top:12px">${nomes.map(o => `<button class="btn gold sm" data-act="rei" data-id="${o.id}">Coroar ${esc(o.nome)}</button>`).join('')}</div>` : ''}</div>`;
+  }
+  return `<div class="rei vazio"><div class="t">Rei da Valore</div><h2 style="margin-top:8px">Nenhum Rei da Valore neste mês</h2><p class="sub">Nenhum operador atingiu os quatro indicadores${ap.tot.pendentes ? ' — ainda há apurações pendentes' : ''}.</p></div>`;
+}
+
+// ---------- Renderização ----------
+function afterData() {
+  if (!S.cfgLoaded || !S.monthsLoaded) return;
+  if (!S.cur || !S.months[S.cur]) S.cur = mesesOrdenados()[0] || null;
+  const a = document.activeElement;
+  if (S.tab === 'lancamento' && a && a.matches && a.matches('input[data-f]')) { atualizarLancamento(); renderMesSel(); return; }
+  if (S.tab === 'config' && S.cfgDraft) { renderMesSel(); return; } // não descartar edição em andamento
+  render();
+}
+function renderMesSel() {
+  const sel = $('#mesSel'); const ids = mesesOrdenados();
+  sel.innerHTML = ids.map(id => `<option value="${id}" ${id === S.cur ? 'selected' : ''}>${mesLabel(id)}${S.months[id].status === 'encerrado' ? ' · encerrado' : ''}</option>`).join('')
+    + (S.config && S.canWrite ? `<option value="__novo">+ Abrir novo mês…</option>` : '') + (!ids.length ? `<option value="" selected>Nenhum mês</option>` : '');
+}
+function render() {
+  $$('nav.tabs button').forEach(b => b.setAttribute('aria-current', b.dataset.tab === S.tab ? 'page' : 'false'));
+  renderMesSel();
+  if (!S.config) return renderSemConfig();
+  const fn = { painel: renderPainel, lancamento: renderLancamento, ranking: renderRanking, historico: renderHistorico, config: renderConfig }[S.tab];
+  fn();
+}
+function roBanner() { return S.canWrite ? '' : `<div class="ro-banner">Somente leitura: sua conta não tem permissão de gravação nesta ferramenta.</div>`; }
+function renderSemConfig() {
+  view.innerHTML = `<div class="panel empty"><h1>Configuração inicial</h1><p>Ainda não há operadores nem parâmetros salvos. Crie a configuração padrão com os sete operadores e as metas oficiais; tudo pode ser ajustado depois em Configurações.</p>
+  ${S.canWrite ? `<button class="btn primary" data-act="criarConfig">Criar configuração padrão</button>` : ''}</div>`;
+}
+function semMes() {
+  const hoje = new Date(); const id = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
+  view.innerHTML = `${roBanner()}<div class="panel empty"><h1>Nenhum mês aberto</h1><p>Abra a apuração de um mês para lançar os resultados dos operadores. Os parâmetros vigentes ficam guardados junto com o mês.</p>
+  ${S.canWrite ? `<div class="actions" style="justify-content:center"><button class="btn primary" data-act="abrirMes" data-id="${id}">Abrir ${mesLabel(id)}</button><button class="btn" data-act="novoMes">Escolher outro mês</button></div>` : ''}</div>`;
+}
+
+// TELA 1 — Painel
+function renderPainel() {
+  const m = curMonth(); if (!m) return semMes();
+  const ap = apurar(m); const t = ap.tot;
+  const ating = t.meta > 0 ? t.producao * 100 / t.meta : null;
+  const top = ap.rk.elegiveis.concat(ap.rk.outros);
+  view.innerHTML = `${roBanner()}
+  <div class="sec-head"><div><h1>Painel de ${esc(mesLabel(m.id))}</h1><p class="sub">${m.status === 'encerrado' ? 'Mês encerrado: resultados e parâmetros congelados.' : 'Mês aberto: os números se atualizam a cada lançamento.'}</p></div>
+  <span class="chip st-${m.status}">${m.status === 'encerrado' ? 'Encerrado' : 'Aberto'}</span></div>
+  <div class="dash">
+    <div class="panel prod-hero">
+      <div class="muted">Produção paga da equipe</div>
+      <div class="big num">${brl(t.producao)}</div>
+      <div class="bar" role="img" aria-label="Atingimento ${pct(ating)}"><i style="width:${Math.min(100, ating || 0)}%"></i></div>
+      <div class="muted num">${pct(ating)} da meta consolidada de ${brl(t.meta)}</div>
+      <div class="stats">
+        <div><b class="num">${t.elegiveis}</b><span>habilitados</span></div>
+        <div><b class="num">${t.nao}</b><span>não habilitados</span></div>
+        <div><b class="num">${t.pendentes}</b><span>apurações pendentes</span></div>
+        <div><b class="num">${brl(t.custo)}</b><span>premiações previstas</span></div>
+      </div>
+    </div>
+    ${reiCard(m, ap, true)}
+  </div>
+  <div class="panel" style="margin-top:16px">
+    <div class="sec-head" style="margin-bottom:8px"><h2>Ranking geral</h2><button class="linkbtn" data-tab-go="ranking">Ver detalhes</button></div>
+    <div class="scroll-x"><table class="mini-rank">${top.map(l => `<tr>
+      <td class="pos num">${l.posicao || '—'}</td>
+      <td><div class="opn">${avatar(l.op, 30)}<span>${esc(l.op.nome)}${ap.rk.rei === l.id ? ' 👑' : ''}</span></div></td>
+      <td>${chip(l.r.status)}</td>
+      <td class="right num">${l.r.status === 'habilitado' ? pts(l.r.pontuacao) + ' pts' : brl(l.r.valores.producao)}</td>
+      <td class="right num"><b>${l.r.status === 'habilitado' ? brl(l.r.premio) : 'R$ 0,00'}</b></td></tr>`).join('') || '<tr><td class="muted">Nenhum operador ativo.</td></tr>'}</table></div>
+  </div>`;
+}
+
+// TELA 2 — Lançamento
+const CAMPOS = [
+  { f: 'producao', t: 'brl' }, { f: 'lojasTotal', t: 'int' }, { f: 'lojasAtivas', t: 'int' }, { f: 'ativPctDireto', t: 'pct' },
+  { f: 'inadimplencia', t: 'brl' }, { f: 'dutElig', t: 'int' }, { f: 'dutRec', t: 'int' }, { f: 'dutPctDireto', t: 'pct' }
+];
+function fmtCampo(t, v) { if (!isNum(v)) return ''; return t === 'brl' ? f2.format(v) : t === 'pct' ? f2.format(v) : String(v); }
+function parseCampo(t, s) {
+  s = String(s).trim().replace(/R\$|%|\s/g, '');
+  if (!s) return null;
+  if (t === 'brl') { if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.'); else if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, ''); }
+  else if (t === 'int') { if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, ''); s = s.replace(',', '.'); }
+  else s = s.replace(',', '.');
+  const n = Number(s); return isFinite(n) ? n : NaN;
+}
+function renderLancamento() {
+  const m = curMonth(); if (!m) return semMes();
+  const ap = apurar(m); const ro = m.status === 'encerrado' || !S.canWrite;
+  const P = m.params.indicadores;
+  view.innerHTML = `${roBanner()}
+  <div class="sec-head"><div><h1>Lançamento de ${esc(mesLabel(m.id))}</h1>
+    <p class="sub">${m.status === 'encerrado' ? `Encerrado em ${new Date(m.encerradoEm).toLocaleDateString('pt-BR')}. Para corrigir, reabra o mês com justificativa.` : 'Os cálculos acontecem enquanto você digita e tudo é salvo automaticamente. Enter desce para o próximo operador.'}</p></div>
+    <div class="actions">
+      ${!ro ? `<button class="btn" data-act="salvar">Salvar agora</button>` : ''}
+      <button class="btn" data-act="exportCSVMes">Exportar CSV</button>
+      ${S.canWrite && m.status === 'aberto' ? `<button class="btn" data-act="atualizarParams">Aplicar regras atuais</button><button class="btn primary" data-act="encerrar">Encerrar mês</button>` : ''}
+      ${S.canWrite && m.status === 'encerrado' ? `<button class="btn" data-act="reabrir">Reabrir mês</button>` : ''}
+    </div></div>
+  <div class="tablewrap"><table class="grid" id="grid">
+    <thead><tr><th class="sticky">Operador</th><th>Produção paga</th><th>Lojas na carteira</th><th>Lojas ativas</th><th>% ativação</th><th>B1/B2/B3</th><th>DUTs elegíveis</th><th>DUTs recuperados</th><th>% DUT</th><th>Status</th><th>Pontos</th><th>Premiação</th><th></th></tr>
+    <tr class="metas"><th class="sticky">Meta padrão</th><th class="num">mín. ${brl(P.producao.meta)}</th><th></th><th></th><th class="num">mín. ${pct(P.ativacao.meta)}</th><th class="num">máx. ${brl(P.inadimplencia.meta)}</th><th></th><th></th><th class="num">mín. ${pct(P.dut.meta)}</th><th colspan="4"></th></tr></thead>
+    <tbody>${ap.linhas.map(l => linhaHtml(l, m, ro)).join('')}</tbody>
+    <tfoot><tr><th class="sticky">Equipe</th><td class="num right" data-tot="prod"></td><td colspan="9" class="muted" data-tot="resumo"></td><td class="num" data-tot="premio"></td><td></td></tr></tfoot>
+  </table></div>
+  <div class="legend"><span>Percentuais: preencha as quantidades para cálculo automático ou informe o % já apurado.</span><span>B1/B2/B3: some cada contrato inadimplente uma única vez.</span></div>`;
+  atualizarLancamento();
+}
+function linhaHtml(l, m, ro) {
+  const e = (m.entries || {})[l.id] || {};
+  const inp = c => `<td><input class="w-${c.t}" data-f="${c.f}" data-t="${c.t}" inputmode="decimal" autocomplete="off" value="${esc(fmtCampo(c.t, e[c.f]))}" ${ro ? 'disabled' : ''} aria-label="${esc(l.op.nome)}: ${c.f}"></td>`;
+  return `<tr data-op="${l.id}"><th class="sticky"><div class="opn">${avatar(l.op, 30)}<span>${esc(l.op.nome)}</span></div><span data-c="exc"></span></th>
+    ${CAMPOS.map(inp).join('')}
+    <td data-c="status"></td><td class="pts num" data-c="pts"></td><td class="num" data-c="premio"></td>
+    <td>${!ro ? `<button class="linkbtn" data-act="excecao" data-id="${l.id}">Exceção</button>` : ''}</td></tr>
+    <tr class="msg" data-msg="${l.id}"><td colspan="13"></td></tr>`;
+}
+function atualizarLancamento() {
+  const m = curMonth(); if (!m || !$('#grid')) return;
+  const ap = apurar(m);
+  ap.linhas.forEach(l => {
+    const tr = $(`tr[data-op="${l.id}"]`); if (!tr) return;
+    const r = l.r; const e = (m.entries || {})[l.id] || {};
+    // percentuais calculados x informados
+    [['ativPctDireto', 'lojasTotal', 'lojasAtivas', 'ativacao'], ['dutPctDireto', 'dutElig', 'dutRec', 'dut']].forEach(([f, tot, par, k]) => {
+      const inp = $(`input[data-f="${f}"]`, tr);
+      const calc = isNum(e[tot]) && isNum(e[par]) && e[tot] > 0;
+      if (inp.disabled) { inp.value = isNum(r.valores[k]) ? f2.format(r.valores[k]) : ''; return; }
+      inp.readOnly = calc; inp.title = calc ? 'Calculado a partir das quantidades' : 'Informe o % apurado se não tiver as quantidades';
+      if (calc) inp.value = f2.format(e[par] * 100 / e[tot]);
+      else if (document.activeElement !== inp) inp.value = fmtCampo('pct', e[f]);
+    });
+    $('[data-c="exc"]', tr).innerHTML = r.excecao ? ` <span class="chip exc" title="${esc(e.excecao.justificativa)}">Exceção</span>` : '';
+    $('[data-c="status"]', tr).innerHTML = chip(r.status);
+    $('[data-c="pts"]', tr).textContent = r.status === 'habilitado' ? pts(r.pontuacao) : '—';
+    $('[data-c="premio"]', tr).innerHTML = r.status === 'habilitado' ? `<b>${brl(r.premio)}</b><div class="muted" style="font-size:.8rem">${esc(r.faixa?.nome || '')}</div>` : 'R$ 0,00';
+    const msgs = [...r.erros.map(x => ['e', x]), ...(r.status === 'invalido' ? [] : r.pendencias.map(x => ['p', x]))];
+    if (r.status === 'nao_habilitado') r.motivos.forEach(k => msgs.push(['n', motivoTxt(k, r)]));
+    const mt = $(`tr[data-msg="${l.id}"]`);
+    const temCampoRuim = $$('input.bad', tr).length > 0;
+    if (temCampoRuim) msgs.unshift(['e', 'Valor não reconhecido: use números (ex.: 1.250.000,00).']);
+    const mostrar = msgs.length && (r.status !== 'pendente' || Object.keys(e).some(k => k !== 'excecao' && isNum(e[k])) || temCampoRuim);
+    mt.classList.toggle('vazio', !mostrar); tr.classList.toggle('has-msg', !!mostrar);
+    $('td', mt).innerHTML = mostrar ? `<div class="msgs">${msgs.map(([c, x]) => `<span class="${c}">${esc(x)}</span>`).join('')}</div>` : '';
+  });
+  $('[data-tot="prod"]').textContent = brl(ap.tot.producao);
+  $('[data-tot="premio"]').innerHTML = `<b>${brl(ap.tot.custo)}</b>`;
+  $('[data-tot="resumo"]').textContent = `${ap.tot.elegiveis} habilitado(s) · ${ap.tot.nao} não habilitado(s) · ${ap.tot.pendentes} pendente(s)`;
+}
+function motivoTxt(k, r) {
+  const v = r.valores[k], mt = r.metas[k];
+  if (k === 'producao') return `Produção de ${brl(v)} abaixo da meta de ${brl(mt)}.`;
+  if (k === 'ativacao') return `Ativação de ${pct(v)} abaixo da meta de ${pct(mt)}.`;
+  if (k === 'inadimplencia') return `B1/B2/B3 de ${brl(v)} acima do limite de ${brl(mt)}.`;
+  return `Recuperação DUT de ${pct(v)} abaixo da meta de ${pct(mt)}.`;
+}
+
+// TELA 3 — Ranking
+function renderRanking() {
+  const m = curMonth(); if (!m) return semMes();
+  const ap = apurar(m); const { rk } = ap;
+  const card = (l, eleg) => `<div class="rk ${rk.rei === l.id ? 'king' : ''}">
+    <div class="pos num">${eleg ? l.posicao + 'º' : '—'}</div>
+    <div class="opn">${avatar(l.op, 42)}<div style="min-width:0"><div style="font-weight:700">${esc(l.op.nome)}${rk.rei === l.id ? ' 👑' : ''}</div><div class="muted" style="font-size:.84rem">${esc(l.op.regiao || '')}${eleg ? '' : (l.op.regiao ? ' · ' : '') + STATUS_TXT[l.r.status]}</div></div></div>
+    <div><span class="lbl">Pontuação</span><span class="val num">${eleg ? pts(l.r.pontuacao) : '—'}</span></div>
+    <div class="c-hide"><span class="lbl">Categoria</span>${eleg && l.r.faixa ? `<span class="chip cat">${esc(l.r.faixa.nome)}</span>` : '<span class="muted">—</span>'}</div>
+    <div><span class="lbl">Premiação</span><span class="val num">${eleg ? brl(l.r.premio) : 'R$ 0,00'}</span></div>
+    <div class="inds-wrap">${indChips(l.r)}${!eleg ? `<div class="muted num" style="font-size:.8rem;margin-top:4px">Prod. ${brl(l.r.valores.producao)} · Ativ. ${pct(l.r.valores.ativacao)} · B1/B2/B3 ${brl(l.r.valores.inadimplencia)} · DUT ${pct(l.r.valores.dut)}</div>` : ''}</div>
+  </div>`;
+  view.innerHTML = `${roBanner()}
+  <div class="sec-head"><div><h1>Ranking e premiação — ${esc(mesLabel(m.id))}</h1><p class="sub">Só operadores que atingem os quatro indicadores pontuam e recebem bônus. Desempate: ${m.params.desempate.map(k => NOMES[k]).join(', ')}.</p></div>
+  <div class="actions"><button class="btn" data-act="exportPDFMes">Relatório PDF</button><button class="btn" data-act="exportXLSXMes">Excel</button></div></div>
+  <div style="max-width:620px">${reiCard(m, ap, false)}</div>
+  <div class="group-t"><h2>Habilitados à premiação</h2><span class="muted num">${rk.elegiveis.length} · ${brl(ap.tot.custo)}</span></div>
+  <div class="rank-list">${rk.elegiveis.map(l => card(l, true)).join('') || '<div class="panel muted">Nenhum operador habilitado neste mês.</div>'}</div>
+  ${rk.outros.length ? `<div class="group-t"><h2>Não habilitados e pendentes</h2><span class="muted">indicadores gerenciais, sem pontuação de premiação</span></div><div class="rank-list">${rk.outros.map(l => card(l, false)).join('')}</div>` : ''}`;
+}
+
+// TELA 4 — Histórico
+function linhasHistorico() {
+  const out = [];
+  Object.keys(S.months).sort().forEach(id => {
+    const m = S.months[id]; const ap = apurar(m);
+    ap.linhas.forEach(l => out.push({ mes: id, status: m.status, op: l.op, r: l.r, rei: ap.rk.rei === l.id, posicao: l.posicao || null }));
+  });
+  return out;
+}
+function renderHistorico() {
+  const todos = linhasHistorico(); const F = S.filtros;
+  const anos = [...new Set(Object.keys(S.months).map(id => id.slice(0, 4)))].sort().reverse();
+  const ops = S.config.operadores;
+  const filtrar = x => (!F.op || x.op.id === F.op) && (!F.ano || x.mes.startsWith(F.ano)) && (!F.mes || x.mes.slice(5) === F.mes);
+  const linhas = todos.filter(filtrar);
+  const mesesF = Object.keys(S.months).sort().filter(id => (!F.ano || id.startsWith(F.ano)) && (!F.mes || id.slice(5) === F.mes));
+  const custos = mesesF.map(id => ({ id, v: apurar(S.months[id]).tot.custo }));
+  const reis = mesesF.map(id => { const ap = apurar(S.months[id]); const l = ap.linhas.find(x => x.id === ap.rk.rei); return { id, l, empate: ap.rk.empateRei }; }).reverse();
+  view.innerHTML = `
+  <div class="sec-head"><div><h1>Histórico mensal</h1><p class="sub">Meses encerrados mostram os parâmetros e resultados do momento do fechamento.</p></div>
+  <div class="actions"><button class="btn" data-act="hExport" data-fmt="csv">CSV</button><button class="btn" data-act="hExport" data-fmt="xlsx">Excel</button><button class="btn" data-act="hExport" data-fmt="pdf">PDF</button></div></div>
+  <div class="panel"><div class="filters">
+    <label class="field">Operador<select data-filtro="op"><option value="">Todos</option>${ops.map(o => `<option value="${o.id}" ${F.op === o.id ? 'selected' : ''}>${esc(o.nome)}${o.status === 'inativo' ? ' (inativo)' : ''}</option>`).join('')}</select></label>
+    <label class="field">Ano<select data-filtro="ano"><option value="">Todos</option>${anos.map(a => `<option ${F.ano === a ? 'selected' : ''}>${a}</option>`).join('')}</select></label>
+    <label class="field">Mês<select data-filtro="mes"><option value="">Todos</option>${MESES.map((n, i) => { const v = String(i + 1).padStart(2, '0'); return `<option value="${v}" ${F.mes === v ? 'selected' : ''}>${n}</option>`; }).join('')}</select></label>
+  </div></div>
+  <div class="hist-grid">
+    <div class="panel"><h2 style="margin-bottom:10px">${F.op ? 'Evolução de ' + esc(opPorId(F.op)?.nome || '') : 'Custo mensal das premiações'}</h2>
+      ${F.op ? graficoEvolucao(linhas) : graficoBarras(custos)}</div>
+    <div class="panel"><h2 style="margin-bottom:10px">Reis da Valore</h2>
+      <table class="plain">${reis.map(x => `<tr><td>${esc(mesLabel(x.id))}</td><td>${x.l ? `<div class="opn">${avatar(x.l.op, 26)}<span>👑 ${esc(x.l.op.nome)}</span></div>` : x.empate ? '<span class="muted">Empate aguardando gestão</span>' : '<span class="muted">Nenhum Rei</span>'}</td><td class="right num">${x.l ? pts(x.l.r.pontuacao) : ''}</td></tr>`).join('') || '<tr><td class="muted">Sem meses no filtro.</td></tr>'}</table></div>
+  </div>
+  <div class="panel" style="margin-top:16px"><div class="scroll-x"><table class="plain">
+    <thead><tr><th>Mês</th><th>Operador</th><th class="right">Produção</th><th>Status</th><th class="right">Pontuação</th><th>Categoria</th><th class="right">Prêmio</th></tr></thead>
+    <tbody>${linhas.slice().reverse().map(x => `<tr><td>${esc(mesCurto(x.mes))}${x.status === 'aberto' ? ' <span class="chip st-aberto">aberto</span>' : ''}</td><td>${x.rei ? '👑 ' : ''}${esc(x.op.nome)}</td><td class="right num">${brl(x.r.valores.producao)}</td><td>${chip(x.r.status)}</td><td class="right num">${x.r.status === 'habilitado' ? pts(x.r.pontuacao) : '—'}</td><td>${esc(x.r.faixa?.nome || '—')}</td><td class="right num">${brl(x.r.premio)}</td></tr>`).join('') || '<tr><td colspan="7" class="muted">Nenhum lançamento no filtro.</td></tr>'}</tbody>
+    <tfoot><tr><th colspan="2">Total</th><th class="right num">${brl(linhas.reduce((s, x) => s + (x.r.valores.producao || 0), 0))}</th><th colspan="3"></th><th class="right num">${brl(linhas.reduce((s, x) => s + x.r.premio, 0))}</th></tr></tfoot>
+  </table></div></div>`;
+  S._hist = linhas;
+}
+function graficoBarras(dados) {
+  if (!dados.length) return '<p class="muted">Sem meses no filtro.</p>';
+  const W = 560, H = 220, pad = 36, max = Math.max(1, ...dados.map(d => d.v));
+  const bw = Math.min(46, (W - pad * 2) / dados.length * .6);
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Custo mensal das premiações">
+    <line x1="${pad}" x2="${W - 10}" y1="${H - 30}" y2="${H - 30}" stroke="var(--line)"/>
+    ${dados.map((d, i) => { const x = pad + (i + .5) * (W - pad * 2) / dados.length; const h = (H - 70) * d.v / max; return `<rect x="${x - bw / 2}" y="${H - 30 - h}" width="${bw}" height="${h}" rx="3" fill="var(--amber)"/><text x="${x}" y="${H - 12}" text-anchor="middle">${mesCurto(d.id)}</text><text x="${x}" y="${H - 36 - h}" text-anchor="middle">${d.v ? (d.v / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' mil' : '0'}</text>`; }).join('')}</svg>`;
+}
+function graficoEvolucao(linhas) {
+  if (!linhas.length) return '<p class="muted">Sem lançamentos no filtro.</p>';
+  const W = 560, H = 230, pad = 40; const n = linhas.length;
+  const maxP = Math.max(1, ...linhas.map(x => x.r.valores.producao || 0));
+  const xAt = i => pad + (i + .5) * (W - pad - 14) / n;
+  const pontos = linhas.map((x, i) => x.r.status === 'habilitado' ? [xAt(i), 26 + (H - 90) * (1 - Math.min(1, (x.r.pontuacao - 100) / 100))] : null);
+  let path = ''; pontos.forEach(p => { if (p) path += (path ? ' L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1); });
+  const bw = Math.min(40, (W - pad) / n * .55);
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Produção e pontuação por mês">
+    <line x1="${pad}" x2="${W - 10}" y1="${H - 30}" y2="${H - 30}" stroke="var(--line)"/>
+    ${linhas.map((x, i) => { const h = (H - 70) * (x.r.valores.producao || 0) / maxP; const cor = x.r.status === 'habilitado' ? 'var(--ok)' : x.r.status === 'nao_habilitado' ? 'var(--bad)' : 'var(--line)';
+      return `<rect x="${xAt(i) - bw / 2}" y="${H - 30 - h}" width="${bw}" height="${h}" rx="3" fill="${cor}" opacity=".35"/><text x="${xAt(i)}" y="${H - 12}" text-anchor="middle">${mesCurto(x.mes)}</text>`; }).join('')}
+    ${path ? `<path d="${path}" fill="none" stroke="var(--amber)" stroke-width="2.5"/>` : ''}
+    ${pontos.map((p, i) => p ? `<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="var(--amber)"/><text x="${p[0]}" y="${p[1] - 9}" text-anchor="middle">${pts(linhas[i].r.pontuacao)}</text>` : '').join('')}
+  </svg><p class="muted" style="font-size:.84rem;margin:6px 0 0">Barras: produção (verde = habilitado, vermelho = não habilitado). Linha dourada: pontuação final.</p>`;
+}
+
+// TELA 5 — Configurações
+function renderConfig() {
+  if (!S.cfgDraft) S.cfgDraft = clone(S.config);
+  const D = S.cfgDraft; const P = D.params; const ro = !S.canWrite;
+  const indCard = k => { const c = P.indicadores[k]; const u = k === 'producao' || k === 'inadimplencia' ? 'R$' : '%';
+    const passoTxt = k === 'producao' ? '% acima da meta' : k === 'inadimplencia' ? '% abaixo do limite' : 'p.p. acima da meta';
+    return `<div class="ind-card"><h3>${esc(NOMES[k])}</h3><div class="row">
+      <label class="field">${k === 'inadimplencia' ? 'Limite máximo' : 'Meta'} (${u})<input data-cfg="ind.${k}.meta" value="${esc(c.meta)}" inputmode="decimal" ${ro ? 'disabled' : ''}></label>
+      <label class="field">Peso (%)<input data-cfg="ind.${k}.peso" value="${esc(c.peso)}" inputmode="decimal" ${ro ? 'disabled' : ''}></label>
+      <label class="field">A cada (${passoTxt})<input data-cfg="ind.${k}.passo" value="${esc(c.passo)}" inputmode="decimal" ${ro ? 'disabled' : ''}></label>
+      <label class="field">Pontos extras<input data-cfg="ind.${k}.pontosPorPasso" value="${esc(c.pontosPorPasso)}" inputmode="decimal" ${ro ? 'disabled' : ''}></label>
+      <label class="field" style="grid-column:1/-1">Limite de pontos extras<input data-cfg="ind.${k}.limite" value="${esc(c.limite)}" inputmode="decimal" ${ro ? 'disabled' : ''}></label></div></div>`; };
+  view.innerHTML = `${roBanner()}
+  <div class="sec-head"><div><h1>Configurações</h1><p class="sub">Alterações valem para meses abertos depois de salvas. Meses já lançados guardam a cópia dos parâmetros usados; um mês aberto só muda se você usar “Aplicar regras atuais” no lançamento.</p></div>
+  ${!ro ? `<div class="actions"><button class="btn" data-act="cfgDescartar">Descartar alterações</button><button class="btn primary" data-act="cfgSalvar">Salvar configurações</button></div>` : ''}</div>
+  ${S.cfgErros.length ? `<div class="errs">${S.cfgErros.map(esc).join('<br>')}</div>` : ''}
+
+  <div class="panel"><div class="sec-head" style="margin-bottom:10px"><h2>Operadores</h2>${!ro ? `<button class="btn sm" data-act="opAdd">Adicionar operador</button>` : ''}</div>
+  <p class="muted" style="margin-top:-6px;font-size:.9rem">Metas individuais em branco seguem a meta padrão.</p>
+  <div class="scroll-x"><table class="plain ops-table"><thead><tr><th>Foto</th><th>Nome</th><th>Região</th><th>Status</th><th>Meta produção (R$)</th><th>Meta ativação (%)</th><th>Limite B1/B2/B3 (R$)</th><th>Meta DUT (%)</th></tr></thead><tbody>
+  ${D.operadores.map(o => { const mi = P.metasIndividuais[o.id] || {}; return `<tr data-opcfg="${o.id}">
+    <td><div class="opn">${avatar(o, 34)}${!ro ? `<label class="linkbtn" style="cursor:pointer">Trocar<input type="file" accept="image/*" data-foto="${o.id}" hidden></label>${o.foto ? `<button class="linkbtn" data-act="fotoRem" data-id="${o.id}">Remover</button>` : ''}` : ''}</div></td>
+    <td><input data-op-f="nome" value="${esc(o.nome)}" ${ro ? 'disabled' : ''}></td>
+    <td><input data-op-f="regiao" value="${esc(o.regiao)}" placeholder="Ex.: Grande Vitória" ${ro ? 'disabled' : ''}></td>
+    <td><select data-op-f="status" ${ro ? 'disabled' : ''}><option value="ativo" ${o.status === 'ativo' ? 'selected' : ''}>Ativo</option><option value="inativo" ${o.status === 'inativo' ? 'selected' : ''}>Inativo</option></select></td>
+    ${INDICADORES.map(k => `<td><input data-mi="${k}" value="${isNum(mi[k]) ? esc(mi[k]) : ''}" placeholder="padrão" inputmode="decimal" ${ro ? 'disabled' : ''}></td>`).join('')}</tr>`; }).join('')}
+  </tbody></table></div></div>
+
+  <div class="panel"><h2 style="margin-bottom:12px">Metas e pontuação</h2>
+    <label class="field" style="max-width:220px;margin-bottom:12px">Pontos de base ao habilitar<input data-cfg="base" value="${esc(P.base)}" inputmode="decimal" ${ro ? 'disabled' : ''}></label>
+    <div class="cfg-grid">${INDICADORES.map(indCard).join('')}</div></div>
+
+  <div class="panel"><div class="sec-head" style="margin-bottom:10px"><h2>Faixas de premiação</h2>${!ro ? `<button class="btn sm" data-act="faixaAdd">Adicionar faixa</button>` : ''}</div>
+  <table class="plain ops-table" style="max-width:640px"><thead><tr><th>Categoria</th><th>A partir de (pontos)</th><th>Premiação (R$)</th><th></th></tr></thead><tbody>
+  ${P.faixas.map((f, i) => `<tr><td><input data-fx="${i}.nome" value="${esc(f.nome)}" ${ro ? 'disabled' : ''}></td><td><input data-fx="${i}.min" value="${esc(f.min)}" inputmode="decimal" ${ro ? 'disabled' : ''}></td><td><input data-fx="${i}.valor" value="${esc(f.valor)}" inputmode="decimal" ${ro ? 'disabled' : ''}></td><td>${!ro ? `<button class="linkbtn" data-act="faixaRem" data-i="${i}">Remover</button>` : ''}</td></tr>`).join('')}
+  </tbody></table><p class="muted" style="font-size:.88rem">Cada faixa vale da sua pontuação mínima até a mínima da próxima (exclusive).</p></div>
+
+  <div class="panel"><h2 style="margin-bottom:10px">Ordem de desempate</h2><p class="muted" style="margin-top:0;font-size:.9rem">Aplicada quando a pontuação final empata. Persistindo o empate, a gestão escolhe o Rei.</p>
+  <ol style="padding-left:20px;margin:0">${P.desempate.map((k, i) => `<li style="padding:5px 0">${{ producao: 'Maior percentual de produção acima da meta', inadimplencia: 'Menor valor de B1/B2/B3', ativacao: 'Maior percentual de ativação', dut: 'Maior percentual de DUT' }[k]} ${!ro ? `<button class="linkbtn" data-act="desUp" data-i="${i}" ${i === 0 ? 'disabled' : ''} aria-label="Subir">↑</button><button class="linkbtn" data-act="desDown" data-i="${i}" ${i === P.desempate.length - 1 ? 'disabled' : ''} aria-label="Descer">↓</button>` : ''}</li>`).join('')}</ol></div>
+
+  <div class="panel"><h2 style="margin-bottom:6px">Backup e auditoria</h2><p class="muted" style="margin-top:0;font-size:.9rem">O backup inclui operadores, parâmetros e todos os meses com suas regras guardadas. Dados ${S.mode === 'db' ? 'salvos no servidor (Supabase) e acessíveis só a quem entra com login e senha' : 'salvos neste navegador (modo de pré-visualização)'}.</p>
+  <div class="actions"><button class="btn" data-act="backup">Baixar backup (JSON)</button>${!ro ? `<label class="btn" style="cursor:pointer">Restaurar backup<input type="file" accept="application/json,.json" data-restore hidden></label>` : ''}</div>
+  ${mesesOrdenados().length ? `<h3 style="margin:18px 0 6px">Registro de alterações por mês</h3><div class="scroll-x"><table class="plain">${mesesOrdenados().flatMap(id => (S.months[id].log || []).map(g => [id, g])).slice(0, 40).map(([id, g]) => `<tr><td>${esc(mesCurto(id))}</td><td class="num">${new Date(g.em).toLocaleString('pt-BR')}</td><td>${esc(g.texto)}</td></tr>`).join('') || '<tr><td class="muted">Sem registros.</td></tr>'}</table></div>` : ''}</div>
+
+  <div class="panel"><div class="sec-head" style="margin-bottom:6px"><h2>Testes do cálculo</h2><button class="btn sm" data-act="testes">Executar os 10 cenários</button></div>
+  ${S.testes ? `<p style="margin:0">${S.testes.filter(t => t.ok).length} de ${S.testes.length} cenários aprovados.</p><ul class="tests">${S.testes.map(t => `<li><span class="${t.ok ? 'ok' : 'no'}">${t.ok ? 'Aprovado' : 'Falhou'}</span> — ${esc(t.nome)}<div class="muted" style="font-size:.84rem">${esc(t.detalhe)}</div></li>`).join('')}</ul>` : '<p class="muted" style="margin:0;font-size:.9rem">Valida a regra de elegibilidade, faixas, desempate, validações e preservação de meses encerrados.</p>'}</div>`;
+}
+function validarConfig(D) {
+  const E = []; const P = D.params;
+  if (!D.operadores.length) E.push('Cadastre ao menos um operador.');
+  D.operadores.forEach(o => { if (!String(o.nome).trim()) E.push('Há operador sem nome.'); });
+  INDICADORES.forEach(k => { const c = P.indicadores[k];
+    ['meta', 'peso', 'passo', 'pontosPorPasso', 'limite'].forEach(f => { if (!isNum(c[f]) || c[f] < 0) E.push(`${NOMES[k]}: valor inválido em “${f}”.`); });
+    if (!(c.passo > 0)) E.push(`${NOMES[k]}: o passo precisa ser maior que zero.`);
+    if ((k === 'ativacao' || k === 'dut') && c.meta > 100) E.push(`${NOMES[k]}: meta acima de 100%.`);
+    if ((k === 'producao' || k === 'inadimplencia') && !(c.meta > 0)) E.push(`${NOMES[k]}: a meta precisa ser maior que zero.`);
+  });
+  const somaPesos = INDICADORES.reduce((s, k) => s + (P.indicadores[k].peso || 0), 0);
+  if (Math.abs(somaPesos - 100) > 1e-6) E.push(`A soma dos pesos é ${f2.format(somaPesos)}%; deve ser 100%.`);
+  if (!isNum(P.base) || P.base < 0) E.push('Pontos de base inválidos.');
+  if (!P.faixas.length) E.push('Cadastre ao menos uma faixa de premiação.');
+  P.faixas.forEach(f => { if (!String(f.nome).trim() || !isNum(f.min) || !isNum(f.valor) || f.valor < 0) E.push(`Faixa “${f.nome || 'sem nome'}” com dados inválidos.`); });
+  const mins = P.faixas.map(f => f.min); if (new Set(mins).size !== mins.length) E.push('Duas faixas começam na mesma pontuação.');
+  Object.entries(P.metasIndividuais).forEach(([id, mi]) => INDICADORES.forEach(k => { if (mi[k] !== undefined && (!isNum(mi[k]) || mi[k] < 0 || ((k === 'ativacao' || k === 'dut') && mi[k] > 100))) E.push(`Meta individual inválida (${opPorId(id)?.nome || D.operadores.find(o => o.id === id)?.nome}: ${NOMES[k]}).`); }));
+  return E;
+}
+
+// ---------- Modais e aviso ----------
+function toast(msg) { const r = $('#toastRoot'); r.innerHTML = `<div class="toast">${esc(msg)}</div>`; clearTimeout(toast._t); toast._t = setTimeout(() => (r.innerHTML = ''), 3200); }
+function modal(html, onOk) {
+  const root = $('#modalRoot');
+  root.innerHTML = `<div class="modal-bg"><div class="modal" role="dialog" aria-modal="true">${html}</div></div>`;
+  const close = () => (root.innerHTML = '');
+  root.onclick = e => {
+    if (e.target.classList.contains('modal-bg') || e.target.closest('[data-m="cancel"]')) close();
+    const ok = e.target.closest('[data-m]'); if (ok && ok.dataset.m !== 'cancel') { const r = onOk(ok.dataset.m, root); if (r !== false) close(); }
+  };
+  root.onkeydown = e => { if (e.key === 'Escape') close(); };
+  const f = $('input,textarea,button', root); f && f.focus();
+}
+function logMes(m, texto) { m.log = m.log || []; m.log.unshift({ em: new Date().toISOString(), texto }); m.log = m.log.slice(0, 60); }
+
+function abrirMes(id) {
+  if (!/^\d{4}-\d{2}$/.test(id)) return toast('Escolha um mês válido.');
+  if (!S.months[id]) {
+    S.months[id] = { id, status: 'aberto', params: clone(S.config.params), entries: {}, operadores: null, reiManual: null, criadoEm: new Date().toISOString(), log: [] };
+    logMes(S.months[id], 'Mês aberto com os parâmetros vigentes.');
+    queueSave(id, 0);
+  }
+  S.cur = id; S.tab = 'lancamento'; render();
+}
+function modalExcecao(opId) {
+  const m = curMonth(); const e = m.entries[opId] = m.entries[opId] || {}; const x = e.excecao || {};
+  const base = VP.metasEfetivas(m.params, opId, null); const op = opsDoMes(m).find(o => o.id === opId);
+  modal(`<h2>Exceção autorizada — ${esc(op.nome)}</h2><p class="sub">Para férias, afastamentos ou carteira sem lojas/DUTs válidos. Metas em branco seguem o padrão. A justificativa é obrigatória e fica registrada.</p>
+    <div class="grid2">
+      <label class="field">Meta de produção (R$)<input id="x_producao" inputmode="decimal" placeholder="${esc(f2.format(base.producao))}" value="${isNum(x.producao) ? esc(f2.format(x.producao)) : ''}"></label>
+      <label class="field">Meta de ativação (%)<input id="x_ativacao" inputmode="decimal" placeholder="${esc(f2.format(base.ativacao))}" value="${isNum(x.ativacao) ? esc(f2.format(x.ativacao)) : ''}"></label>
+      <label class="field">Limite B1/B2/B3 (R$)<input id="x_inadimplencia" inputmode="decimal" placeholder="${esc(f2.format(base.inadimplencia))}" value="${isNum(x.inadimplencia) ? esc(f2.format(x.inadimplencia)) : ''}"></label>
+      <label class="field">Meta DUT (%)<input id="x_dut" inputmode="decimal" placeholder="${esc(f2.format(base.dut))}" value="${isNum(x.dut) ? esc(f2.format(x.dut)) : ''}"></label>
+    </div>
+    <label class="field" style="margin-top:10px">Justificativa<textarea id="x_just">${esc(x.justificativa || '')}</textarea></label>
+    <label class="field" style="margin-top:10px">Autorizado por<input id="x_aut" value="${esc(x.autorizadoPor || '')}"></label>
+    <div id="x_err"></div>
+    <div class="foot">${e.excecao ? `<button class="btn danger" data-m="remover">Remover exceção</button>` : ''}<button class="btn" data-m="cancel">Cancelar</button><button class="btn primary" data-m="ok">Salvar exceção</button></div>`,
+  (acao, root) => {
+    if (acao === 'remover') { delete e.excecao; logMes(m, `Exceção removida: ${op.nome}.`); }
+    else {
+      const just = $('#x_just', root).value.trim();
+      const v = {}; const errs = [];
+      INDICADORES.forEach(k => { const t = k === 'producao' || k === 'inadimplencia' ? 'brl' : 'pct'; const n = parseCampo(t, $('#x_' + k, root).value);
+        if (n === null) return; if (Number.isNaN(n) || n < 0 || (t === 'pct' && n > 100) || ((k === 'producao' || k === 'inadimplencia') && n === 0)) errs.push(`${NOMES[k]}: valor inválido.`); else v[k] = n; });
+      if (!just) errs.push('Informe a justificativa.');
+      if (errs.length) { $('#x_err', root).innerHTML = `<div class="errs">${errs.map(esc).join('<br>')}</div>`; return false; }
+      e.excecao = { ...v, justificativa: just, autorizadoPor: $('#x_aut', root).value.trim(), registradoEm: new Date().toISOString() };
+      logMes(m, `Exceção para ${op.nome}: ${just}${e.excecao.autorizadoPor ? ' (autorizado por ' + e.excecao.autorizadoPor + ')' : ''}.`);
+    }
+    queueSave(m.id, 0); atualizarLancamento();
+  });
+}
+
+// ---------- Exportação ----------
+async function salvarArquivo(nome, dados, mime) {
+  let dl = null; try { if (window.claude && claude.use) dl = await claude.use('downloads'); } catch (e) {}
+  if (dl) {
+    try { await dl.save({ filename: nome, data: dados }); return; }
+    catch (e) { if (e && e.code === 'declined') return; if (e && e.code === 'rate_limited') return toast('Aguarde a confirmação anterior e tente de novo.'); }
+  }
+  try { const url = URL.createObjectURL(new Blob([dados], { type: mime })); const a = document.createElement('a'); a.href = url; a.download = nome; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 4000); }
+  catch (e) { toast('Não foi possível gerar o arquivo nesta visualização.'); }
+}
+const scripts = {};
+function carregar(url) { return scripts[url] = scripts[url] || new Promise((ok, no) => { const s = document.createElement('script'); s.src = url; s.onload = ok; s.onerror = () => { delete scripts[url]; no(new Error('Falha ao carregar ' + url)); }; document.head.appendChild(s); }); }
+const LIB = {
+  xlsx: 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+  jspdf: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+  autotable: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js'
+};
+const num2 = v => isNum(v) ? Math.floor(v * 100 + 1e-7) / 100 : '';
+function linhasMesTabela(m) {
+  const ap = apurar(m);
+  return { ap, rows: ap.rk.elegiveis.concat(ap.rk.outros).map(l => ({
+    'Posição': l.posicao || '', 'Operador': l.op.nome + (ap.rk.rei === l.id ? ' (Rei da Valore)' : ''), 'Região': l.op.regiao || '',
+    'Produção paga (R$)': num2(l.r.valores.producao), '% Ativação': num2(l.r.valores.ativacao), 'B1/B2/B3 (R$)': num2(l.r.valores.inadimplencia),
+    '% DUT': num2(l.r.valores.dut), 'Status': STATUS_TXT[l.r.status], 'Pontuação': l.r.status === 'habilitado' ? num2(l.r.pontuacao) : '',
+    'Categoria': l.r.faixa?.nome || '', 'Premiação (R$)': l.r.premio, 'Exceção': l.r.excecao ? ((m.entries[l.id] || {}).excecao || {}).justificativa || 'sim' : ''
+  })) };
+}
+function csvDe(rows) {
+  if (!rows.length) return '';
+  const cols = Object.keys(rows[0]);
+  const cel = v => { if (typeof v === 'number') v = String(v).replace('.', ','); v = String(v ?? ''); return /[;"\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+  return '\uFEFF' + [cols.join(';'), ...rows.map(r => cols.map(c => cel(r[c])).join(';'))].join('\r\n');
+}
+async function exportXLSX(nome, folhas) {
+  toast('Gerando planilha…');
+  try { await carregar(LIB.xlsx); } catch (e) { return toast('Não foi possível carregar o gerador de Excel. Use o CSV.'); }
+  const wb = XLSX.utils.book_new();
+  folhas.forEach(([n, rows]) => XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows.length ? rows : [{ Info: 'Sem dados' }]), n.slice(0, 31)));
+  const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  await salvarArquivo(nome, new Uint8Array(out), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+}
+async function exportPDF(nome, titulo, linhasResumo, rows) {
+  toast('Gerando PDF…');
+  try { await carregar(LIB.jspdf); await carregar(LIB.autotable); } catch (e) { return toast('Não foi possível carregar o gerador de PDF. Use o CSV ou o Excel.'); }
+  const doc = new window.jspdf.jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+  doc.setFillColor(14, 42, 71); doc.rect(0, 0, 842, 64, 'F');
+  doc.setTextColor(255, 255, 255); doc.setFont('times', 'bold'); doc.setFontSize(18); doc.text('Valore Performance', 36, 30);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(11); doc.text(titulo, 36, 48);
+  doc.setTextColor(30, 40, 50); doc.setFontSize(10);
+  let y = 86; linhasResumo.forEach(t => { doc.text(t, 36, y); y += 15; });
+  const cols = rows.length ? Object.keys(rows[0]) : ['Info'];
+  const fmt = (c, v) => typeof v === 'number' ? (c.includes('R$') ? fBRL.format(v) : f2.format(v)) : String(v ?? '');
+  doc.autoTable({ startY: y + 6, head: [cols], body: rows.length ? rows.map(r => cols.map(c => fmt(c, r[c]))) : [['Sem dados']],
+    styles: { fontSize: 8, cellPadding: 4 }, headStyles: { fillColor: [14, 42, 71], textColor: 255 }, alternateRowStyles: { fillColor: [242, 245, 248] }, margin: { left: 36, right: 36 } });
+  doc.setFontSize(8); doc.setTextColor(110); doc.text(`Gerado em ${new Date().toLocaleString('pt-BR')}`, 36, 575);
+  await salvarArquivo(nome, doc.output('arraybuffer'), 'application/pdf');
+}
+function resumoMesTxt(m, ap) {
+  const P = m.params.indicadores; const rei = ap.linhas.find(l => l.id === ap.rk.rei);
+  return [
+    `Status do mês: ${m.status === 'encerrado' ? 'encerrado' : 'aberto (resultados provisórios)'}    Produção da equipe: ${brl(ap.tot.producao)} de ${brl(ap.tot.meta)}    Premiações: ${brl(ap.tot.custo)}`,
+    `Habilitados: ${ap.tot.elegiveis}    Não habilitados: ${ap.tot.nao}    Pendentes: ${ap.tot.pendentes}    Rei da Valore: ${rei ? rei.op.nome + ' (' + pts(rei.r.pontuacao) + ' pts)' : ap.rk.empateRei ? 'empate aguardando decisão da gestão' : 'nenhum'}`,
+    `Parâmetros do mês: produção mín. ${brl(P.producao.meta)} | ativação mín. ${pct(P.ativacao.meta)} | B1/B2/B3 máx. ${brl(P.inadimplencia.meta)} | DUT mín. ${pct(P.dut.meta)} | faixas: ${m.params.faixas.map(f => f.nome + ' ' + f.min + '+ = ' + fBRL.format(f.valor)).join(', ')}`
+  ];
+}
+
+// ---------- Eventos ----------
+document.querySelector('nav.tabs').addEventListener('click', async e => {
+  const b = e.target.closest('button[data-tab]'); if (!b) return;
+  if (S.tab === 'config' && b.dataset.tab !== 'config' && S.cfgDraft && JSON.stringify(S.cfgDraft) !== JSON.stringify(S.config)) {
+    if (!confirm('Há alterações não salvas nas configurações. Descartar?')) return;
+  }
+  if (b.dataset.tab !== 'config') { S.cfgDraft = null; S.cfgErros = []; }
+  await flushAll(); S.tab = b.dataset.tab; render(); window.scrollTo(0, 0);
+});
+$('#mesSel').addEventListener('change', async e => {
+  const v = e.target.value;
+  if (v === '__novo') { renderMesSel(); return modalNovoMes(); }
+  await flushAll(); S.cur = v; render();
+});
+function modalNovoMes() {
+  const h = new Date(); const sug = `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}`;
+  modal(`<h2>Abrir novo mês</h2><p class="sub">O mês nasce com uma cópia dos parâmetros vigentes, para auditoria.</p>
+    <label class="field" style="margin-top:12px">Mês de apuração<input id="nm" type="month" value="${sug}"></label>
+    <div class="foot"><button class="btn" data-m="cancel">Cancelar</button><button class="btn primary" data-m="ok">Abrir mês</button></div>`,
+    (a, root) => { const v = $('#nm', root).value; if (S.months[v]) { S.cur = v; render(); return; } abrirMes(v); });
+}
+
+view.addEventListener('input', e => {
+  const t = e.target;
+  if (t.matches('input[data-f]')) {
+    const m = curMonth(); if (!m || m.status === 'encerrado' || !S.canWrite) return;
+    const id = t.closest('tr[data-op]').dataset.op; const v = parseCampo(t.dataset.t, t.value);
+    m.entries[id] = m.entries[id] || {};
+    m.entries[id][t.dataset.f] = (v === null || Number.isNaN(v)) ? null : v;
+    t.classList.toggle('bad', Number.isNaN(v));
+    atualizarLancamento(); queueSave(m.id);
+    return;
+  }
+  if (S.tab === 'config' && S.cfgDraft) {
+    const D = S.cfgDraft;
+    const numOr = (s) => { const n = parseCampo('pct', s); return n === null ? null : n; };
+    if (t.dataset.cfg) {
+      const p = t.dataset.cfg.split('.'); const n = numOr(t.value);
+      if (p[0] === 'base') D.params.base = n; else D.params.indicadores[p[1]][p[2]] = n;
+    } else if (t.dataset.opF) { const o = D.operadores.find(o => o.id === t.closest('tr').dataset.opcfg); o[t.dataset.opF] = t.value; }
+    else if (t.dataset.mi) { const id = t.closest('tr').dataset.opcfg; const n = parseCampo(t.dataset.mi === 'producao' || t.dataset.mi === 'inadimplencia' ? 'brl' : 'pct', t.value);
+      const mi = D.params.metasIndividuais[id] = D.params.metasIndividuais[id] || {}; if (n === null) delete mi[t.dataset.mi]; else mi[t.dataset.mi] = n;
+      if (!Object.keys(mi).length) delete D.params.metasIndividuais[id]; }
+    else if (t.dataset.fx) { const [i, f] = t.dataset.fx.split('.'); D.params.faixas[+i][f] = f === 'nome' ? t.value : numOr(t.value); }
+  }
+});
+view.addEventListener('change', async e => {
+  const t = e.target;
+  if (t.matches('select[data-op-f]')) { const o = S.cfgDraft.operadores.find(o => o.id === t.closest('tr').dataset.opcfg); o.status = t.value; }
+  if (t.dataset.filtro) { S.filtros[t.dataset.filtro] = t.value; renderHistorico(); }
+  if (t.dataset.foto) {
+    const f = t.files[0]; if (!f) return;
+    try { const url = await reduzirFoto(f); S.cfgDraft.operadores.find(o => o.id === t.dataset.foto).foto = url; renderConfig(); }
+    catch (err) { toast('Não foi possível ler a imagem.'); }
+  }
+  if (t.matches('input[data-restore]')) {
+    const f = t.files[0]; if (!f) return;
+    try { const d = JSON.parse(await f.text()); if (!d.config || !d.meses) throw 0; confirmarRestauracao(d); }
+    catch (err) { toast('Arquivo de backup inválido.'); }
+    t.value = '';
+  }
+});
+view.addEventListener('focusout', e => {
+  const t = e.target; if (!t.matches('input[data-f]') || t.readOnly) return;
+  const m = curMonth(); const id = t.closest('tr[data-op]').dataset.op; const v = (m.entries[id] || {})[t.dataset.f];
+  if (!t.classList.contains('bad')) t.value = fmtCampo(t.dataset.t, v);
+});
+view.addEventListener('keydown', e => {
+  const t = e.target; if (e.key !== 'Enter' || !t.matches('input[data-f]')) return;
+  e.preventDefault(); const tr = t.closest('tr[data-op]'); let nx = tr.nextElementSibling;
+  while (nx && !nx.matches('tr[data-op]')) nx = nx.nextElementSibling;
+  const alvo = nx && $(`input[data-f="${t.dataset.f}"]`, nx); if (alvo) { alvo.focus(); alvo.select(); } else t.blur();
+});
+view.addEventListener('click', async e => {
+  const go = e.target.closest('[data-tab-go]'); if (go) { S.tab = go.dataset.tabGo; render(); return; }
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const a = b.dataset.act; const m = curMonth();
+  switch (a) {
+    case 'criarConfig':
+      S.config = { operadores: clone(VP.DEFAULT_OPERADORES), params: clone(VP.DEFAULT_PARAMS) };
+      queueSave('__config', 0); render(); break;
+    case 'abrirMes': abrirMes(b.dataset.id); break;
+    case 'novoMes': modalNovoMes(); break;
+    case 'salvar': await flushAll(); toast('Lançamentos salvos.'); break;
+    case 'excecao': modalExcecao(b.dataset.id); break;
+    case 'rei': m.reiManual = b.dataset.id; logMes(m, `Gestão coroou ${opPorId(b.dataset.id)?.nome} após empate técnico.`); queueSave(m.id, 0); render(); break;
+    case 'atualizarParams':
+      modal(`<h2>Aplicar regras atuais a ${esc(mesLabel(m.id))}?</h2><p class="sub">O mês passa a usar as metas, faixas e critérios salvos em Configurações agora. Os lançamentos são mantidos e recalculados.</p><div class="foot"><button class="btn" data-m="cancel">Cancelar</button><button class="btn primary" data-m="ok">Aplicar</button></div>`,
+        () => { m.params = clone(S.config.params); logMes(m, 'Parâmetros do mês atualizados para a configuração vigente.'); queueSave(m.id, 0); render(); toast('Regras aplicadas e resultados recalculados.'); });
+      break;
+    case 'encerrar': {
+      const ap = apurar(m);
+      modal(`<h2>Encerrar ${esc(mesLabel(m.id))}?</h2><p class="sub">Resultados, operadores e parâmetros ficam congelados para auditoria. Total de premiações: <b>${brl(ap.tot.custo)}</b>.</p>
+        ${ap.tot.pendentes ? `<div class="errs">${ap.tot.pendentes} apuração(ões) pendente(s) ou com dados inválidos serão encerradas sem premiação.</div>` : ''}
+        ${ap.rk.empateRei ? `<div class="errs">Há empate técnico pelo título de Rei da Valore sem decisão da gestão.</div>` : ''}
+        <div class="foot"><button class="btn" data-m="cancel">Cancelar</button><button class="btn primary" data-m="ok">Encerrar mês</button></div>`,
+        () => { m.status = 'encerrado'; m.encerradoEm = new Date().toISOString(); m.operadores = ap.ops.map(o => ({ id: o.id, nome: o.nome, regiao: o.regiao || '' }));
+          logMes(m, `Mês encerrado. Premiações: ${brl(ap.tot.custo)}.`); queueSave(m.id, 0); render(); toast('Mês encerrado.'); });
+      break; }
+    case 'reabrir':
+      modal(`<h2>Reabrir ${esc(mesLabel(m.id))}</h2><p class="sub">Use apenas para correções. A justificativa fica registrada no histórico do mês; os parâmetros guardados continuam os mesmos.</p>
+        <label class="field" style="margin-top:12px">Justificativa<textarea id="rj"></textarea></label><div id="rjErr"></div>
+        <div class="foot"><button class="btn" data-m="cancel">Cancelar</button><button class="btn primary" data-m="ok">Reabrir mês</button></div>`,
+        (x, root) => { const j = $('#rj', root).value.trim(); if (!j) { $('#rjErr', root).innerHTML = '<div class="errs">Informe a justificativa.</div>'; return false; }
+          m.status = 'aberto'; m.operadores = null; logMes(m, 'Mês reaberto: ' + j); queueSave(m.id, 0); render(); });
+      break;
+    case 'exportCSVMes': { const { rows } = linhasMesTabela(m); await salvarArquivo(`valore-apuracao-${m.id}.csv`, csvDe(rows), 'text/csv'); break; }
+    case 'exportXLSXMes': { const { rows } = linhasMesTabela(m);
+      const P = m.params; const par = [...INDICADORES.map(k => ({ Parâmetro: NOMES[k], Meta: P.indicadores[k].meta, Peso: P.indicadores[k].peso, 'Limite extras': P.indicadores[k].limite })), ...P.faixas.map(f => ({ Parâmetro: 'Faixa ' + f.nome, Meta: f.min, Peso: '', 'Limite extras': '', 'Premiação (R$)': f.valor }))];
+      await exportXLSX(`valore-apuracao-${m.id}.xlsx`, [['Apuração ' + m.id, rows], ['Parâmetros do mês', par], ['Registro', (m.log || []).map(g => ({ Data: new Date(g.em).toLocaleString('pt-BR'), Registro: g.texto }))]]); break; }
+    case 'exportPDFMes': { const { ap, rows } = linhasMesTabela(m); await exportPDF(`valore-apuracao-${m.id}.pdf`, 'Apuração de premiação — ' + mesLabel(m.id), resumoMesTxt(m, ap), rows.map(r => { const c = { ...r }; delete c['Região']; return c; })); break; }
+    case 'hExport': {
+      const rows = (S._hist || []).map(x => ({ 'Mês': x.mes, 'Operador': x.op.nome, 'Produção paga (R$)': num2(x.r.valores.producao), 'Status': STATUS_TXT[x.r.status], 'Pontuação': x.r.status === 'habilitado' ? num2(x.r.pontuacao) : '', 'Categoria': x.r.faixa?.nome || '', 'Premiação (R$)': x.r.premio, 'Rei da Valore': x.rei ? 'sim' : '', 'Mês encerrado': x.status === 'encerrado' ? 'sim' : 'não' }));
+      const F = S.filtros; const suf = [F.ano, F.mes, F.op && opPorId(F.op)?.nome].filter(Boolean).join('-') || 'completo';
+      if (b.dataset.fmt === 'csv') await salvarArquivo(`valore-historico-${suf}.csv`, csvDe(rows), 'text/csv');
+      else if (b.dataset.fmt === 'xlsx') await exportXLSX(`valore-historico-${suf}.xlsx`, [['Histórico', rows]]);
+      else await exportPDF(`valore-historico-${suf}.pdf`, 'Histórico de premiações', [`Filtro: ${F.op ? opPorId(F.op)?.nome : 'todos os operadores'} · ${F.ano || 'todos os anos'} · ${F.mes ? MESES[+F.mes - 1] : 'todos os meses'}`, `Total pago no período: ${brl(rows.reduce((s, r) => s + r['Premiação (R$)'], 0))}`], rows);
+      break; }
+    case 'cfgDescartar': S.cfgDraft = null; S.cfgErros = []; renderConfig(); break;
+    case 'cfgSalvar': {
+      const D = S.cfgDraft; D.params.faixas.sort((x, y) => x.min - y.min);
+      const E = validarConfig(D); S.cfgErros = E;
+      if (E.length) { renderConfig(); window.scrollTo(0, 0); break; }
+      S.config = clone(D); S.cfgDraft = null; queueSave('__config', 0); await flushAll(); renderConfig(); toast('Configurações salvas. Valem para meses abertos a partir de agora.'); break; }
+    case 'opAdd': S.cfgDraft.operadores.push({ id: 'op' + Date.now().toString(36), nome: 'Novo operador', regiao: '', status: 'ativo', foto: '' }); renderConfig(); break;
+    case 'fotoRem': S.cfgDraft.operadores.find(o => o.id === b.dataset.id).foto = ''; renderConfig(); break;
+    case 'faixaAdd': { const fx = S.cfgDraft.params.faixas; const ult = fx[fx.length - 1]; fx.push({ nome: 'Nova faixa', min: ult ? ult.min + 10 : 100, valor: ult ? ult.valor : 0 }); renderConfig(); break; }
+    case 'faixaRem': S.cfgDraft.params.faixas.splice(+b.dataset.i, 1); renderConfig(); break;
+    case 'desUp': case 'desDown': { const d = S.cfgDraft.params.desempate; const i = +b.dataset.i; const j = a === 'desUp' ? i - 1 : i + 1; [d[i], d[j]] = [d[j], d[i]]; renderConfig(); break; }
+    case 'testes': S.testes = VP.executarTestes(); renderConfig(); break;
+    case 'backup': await salvarArquivo(`valore-performance-backup-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify({ sistema: 'Valore Performance', versao: 1, exportadoEm: new Date().toISOString(), config: S.config, meses: S.months }, null, 2), 'application/json'); break;
+  }
+});
+function confirmarRestauracao(d) {
+  const n = Object.keys(d.meses).length;
+  modal(`<h2>Restaurar backup?</h2><p class="sub">Substitui operadores e parâmetros e grava ${n} mês(es) do arquivo de ${d.exportadoEm ? new Date(d.exportadoEm).toLocaleString('pt-BR') : 'data desconhecida'}. Meses que não estão no arquivo são mantidos.</p>
+    <div class="foot"><button class="btn" data-m="cancel">Cancelar</button><button class="btn primary" data-m="ok">Restaurar</button></div>`, () => {
+    S.config = normalizarConfig(clone(d.config)); S.cfgDraft = null; queueSave('__config', 0);
+    Object.values(d.meses).forEach(m => { if (m && /^\d{4}-\d{2}$/.test(m.id)) { S.months[m.id] = clone(m); queueSave(m.id, 0); } });
+    flushAll().then(() => { toast('Backup restaurado.'); render(); });
+  });
+}
+function reduzirFoto(file) {
+  return new Promise((ok, no) => {
+    const img = new Image(); const url = URL.createObjectURL(file);
+    img.onload = () => { const s = 160; const c = document.createElement('canvas'); c.width = c.height = s; const g = c.getContext('2d');
+      const k = Math.min(img.width, img.height); g.drawImage(img, (img.width - k) / 2, (img.height - k) / 2, k, k, 0, 0, s, s);
+      URL.revokeObjectURL(url); ok(c.toDataURL('image/jpeg', .82)); };
+    img.onerror = no; img.src = url;
+  });
+}
+window.addEventListener('pagehide', () => { flushAll(); });
+
+// ---------- Início ----------
+const hashTab = (location.hash || '').slice(1);
+if (['painel', 'lancamento', 'ranking', 'historico', 'config'].includes(hashTab)) S.tab = hashTab;
+
+// ---------- Acesso (login no Supabase) ----------
+let iniciado = false;
+function liberar() {
+  document.getElementById('login').hidden = true;
+  if (!iniciado) { iniciado = true; Store.init(); }
+}
+function bloquear() {
+  document.getElementById('login').hidden = false;
+  document.getElementById('lgPass').value = '';
+  if (!SB_OK) document.getElementById('lgCfg').hidden = false;
+  setTimeout(() => document.getElementById('lgUser').focus(), 30);
+}
+document.getElementById('loginForm').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const u = document.getElementById('lgUser').value.trim().toLowerCase();
+  const p = document.getElementById('lgPass').value;
+  const err = document.getElementById('lgErr');
+  const btn = ev.target.querySelector('button[type=submit]');
+  err.textContent = '';
+  if (!SB_OK) { err.textContent = 'Sistema ainda não conectado ao Supabase.'; return; }
+  if (!u || !p) { err.textContent = 'Informe login e senha.'; return; }
+  btn.disabled = true; btn.textContent = 'Entrando…';
+  const { error } = await sb.auth.signInWithPassword({ email: u, password: p });
+  btn.disabled = false; btn.textContent = 'Entrar';
+  if (error) {
+    err.textContent = /invalid/i.test(error.message) ? 'Login ou senha incorretos.' : 'Não foi possível entrar: ' + error.message;
+    document.getElementById('lgPass').value = '';
+    document.getElementById('lgPass').focus();
+    return;
+  }
+  liberar();
+});
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  try { await flushAll(); } catch (e) {}
+  try { if (sb) await sb.auth.signOut(); } catch (e) {}
+  location.reload();
+});
+(async () => {
+  if (!sb) return bloquear();
+  const { data } = await sb.auth.getSession();
+  if (data && data.session) liberar(); else bloquear();
+  sb.auth.onAuthStateChange((evt) => { if (evt === 'SIGNED_OUT' && iniciado) location.reload(); });
+})();
+})();
+</script>
+</body></html>
