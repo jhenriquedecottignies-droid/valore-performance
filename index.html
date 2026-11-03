@@ -106,6 +106,35 @@ main{max-width:1320px;margin:0 auto;padding:24px 20px 64px}
 .stats div+div{padding-left:14px;border-left:1px solid var(--line)}
 .stats b{display:block;font-family:var(--serif);font-size:1.6rem;line-height:1.1}
 .stats span{font-size:.88rem;color:var(--muted)}
+.board-head{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:10px}
+.tickers{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 14px}
+.ticker{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:.85rem;background:var(--surface-2)}
+.ticker b{font-weight:700;letter-spacing:.03em;text-transform:uppercase;font-size:.75rem;color:var(--muted)}
+.ticker .q{font-weight:700;font-variant-numeric:tabular-nums}
+.q.up{color:var(--ok)} .q.near{color:var(--warn)} .q.down{color:var(--bad)} .q.na{color:var(--muted)}
+.board{width:100%;border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-nums;min-width:860px}
+.board th{font-size:.74rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700;text-align:right;padding:8px 10px;border-bottom:2px solid var(--line);white-space:nowrap}
+.board th small{display:block;text-transform:none;letter-spacing:0;font-weight:500;font-size:.74rem}
+.board th:first-child,.board td:first-child{text-align:left}
+.board td{padding:10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap;vertical-align:middle}
+.board tbody tr:hover td{background:var(--surface-2)}
+.board td.opcell{position:sticky;left:0;background:var(--surface);z-index:1}
+.board tbody tr:hover td.opcell{background:var(--surface-2)}
+.tk .tk-v{display:block;font-weight:700;font-size:.98rem}
+.tk .tk-d{display:inline-block;font-size:.78rem;font-weight:700;padding:2px 7px;border-radius:5px;margin-top:4px}
+.tk-up .tk-v{color:var(--ok)} .tk-up .tk-d{color:var(--ok);background:var(--ok-soft)}
+.tk-near .tk-v{color:var(--warn)} .tk-near .tk-d{color:var(--warn);background:var(--warn-soft)}
+.tk-down .tk-v{color:var(--bad)} .tk-down .tk-d{color:var(--bad);background:var(--bad-soft)}
+.tk-na .tk-v,.tk-na .tk-d{color:var(--muted)} .tk-na .tk-d{background:var(--surface-2)}
+.res{text-align:right}
+.res .r1{font-weight:800;font-size:.98rem}
+.res .r2{font-size:.8rem;margin-top:3px;color:var(--muted)}
+.res.up .r1{color:var(--ok)} .res.down .r1{color:var(--bad)} .res.na .r1{color:var(--warn)}
+.hits{display:inline-flex;gap:3px;margin-right:6px;vertical-align:middle}
+.hits i{width:8px;height:8px;border-radius:2px;background:var(--line);display:inline-block}
+.hits i.up{background:var(--ok)} .hits i.near{background:var(--warn)} .hits i.down{background:var(--bad)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.8rem;color:var(--muted);margin-top:12px}
+.legend span b{font-weight:800;margin-right:4px}
 .mini-rank{width:100%;border-collapse:collapse}
 .mini-rank td{padding:9px 6px;border-top:1px solid var(--line);vertical-align:middle}
 .mini-rank tr:first-child td{border-top:0}
@@ -731,6 +760,68 @@ function semMes() {
 }
 
 // TELA 1 — Painel
+// Quadro estilo bolsa: indicadores por operador
+function brlC(v) {
+  const a = Math.abs(v);
+  if (a >= 1e6) return 'R$ ' + f2.format(v / 1e6) + ' mi';
+  if (a >= 1e3) return 'R$ ' + new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 }).format(v / 1e3) + ' mil';
+  return brl(v);
+}
+const IND_ROT = { producao: 'Produção', ativacao: 'Lojas ativas', inadimplencia: 'B1/B2/B3', dut: 'Recup. DUT' };
+function cotacao(k, r) {
+  const v = r.valores ? r.valores[k] : null, meta = r.metas ? r.metas[k] : null;
+  if (!isNum(v) || !isNum(meta)) return { st: 'na', html: `<td class="tk tk-na" title="${IND_ROT[k]}: sem dado"><span class="tk-v">—</span><span class="tk-d">● sem dado</span></td>` };
+  const hit = r.atingidos && r.atingidos[k];
+  let val, delta, gap, tip;
+  if (k === 'producao') {
+    const d = meta > 0 ? (v / meta - 1) * 100 : 0;
+    val = brlC(v); delta = (d >= 0 ? '+' : '−') + f2.format(Math.abs(d)) + '%'; gap = meta > 0 ? (meta - v) / meta : 1;
+    tip = `Produção ${brl(v)} · meta ${brl(meta)}`;
+  } else if (k === 'inadimplencia') {
+    const d = meta > 0 ? (1 - v / meta) * 100 : 0;
+    val = brlC(v); delta = (d >= 0 ? '+' : '−') + f2.format(Math.abs(d)) + '%'; gap = meta > 0 ? (v - meta) / meta : 1;
+    tip = `B1/B2/B3 ${brl(v)} · limite ${brl(meta)} · ${d >= 0 ? 'folga' : 'excesso'} de ${f2.format(Math.abs(d))}%`;
+  } else {
+    const d = v - meta;
+    val = pct(v); delta = (d >= 0 ? '+' : '−') + f2.format(Math.abs(d)) + ' p.p.'; gap = meta > 0 ? (meta - v) / meta : 1;
+    tip = `${IND_ROT[k]} ${pct(v)} · meta ${pct(meta)}`;
+  }
+  const st = hit ? 'up' : (gap <= 0.10 + 1e-9 ? 'near' : 'down');
+  const seta = st === 'up' ? '▲' : '▼';
+  return { st, html: `<td class="tk tk-${st}" title="${esc(tip)}"><span class="tk-v">${val}</span><span class="tk-d">${seta} ${delta}</span></td>` };
+}
+function quadroPainel(m, ap) {
+  const linhas = ap.rk.elegiveis.concat(ap.rk.outros);
+  const cont = {}; INDICADORES.forEach(k => cont[k] = { up: 0, near: 0, down: 0, na: 0 });
+  const rows = linhas.map(l => {
+    const r = l.r; const cells = INDICADORES.map(k => { const c = cotacao(k, r); cont[k][c.st]++; return c; });
+    const nHit = cells.filter(c => c.st === 'up').length;
+    const hits = `<span class="hits" aria-hidden="true">${cells.map(c => `<i class="${c.st === 'na' ? '' : c.st}"></i>`).join('')}</span>`;
+    let res;
+    if (r.status === 'habilitado') res = `<td class="res up"><div class="r1">▲ ${brl(r.premio)}</div><div class="r2">${hits}${pts(r.pontuacao)} pts · ${esc(r.faixa ? r.faixa.nome : '')}</div></td>`;
+    else if (r.status === 'nao_habilitado') res = `<td class="res down"><div class="r1">▼ R$ 0,00</div><div class="r2">${hits}${nHit}/4 metas · não habilitado</div></td>`;
+    else if (r.status === 'invalido') res = `<td class="res down"><div class="r1">✕ Dado inválido</div><div class="r2">${hits}corrija no Lançamento</div></td>`;
+    else res = `<td class="res na"><div class="r1">● Pendente</div><div class="r2">${hits}apuração incompleta</div></td>`;
+    return `<tr><td class="opcell"><div class="opn"><span class="pos num" style="min-width:18px;color:var(--muted)">${l.posicao || '—'}</span>${avatar(l.op, 28)}<span>${esc(l.op.nome)}${ap.rk.rei === l.id ? ' 👑' : ''}</span></div></td>${cells.map(c => c.html).join('')}${res}</tr>`;
+  }).join('');
+  const P = m.params.indicadores;
+  const tick = INDICADORES.map(k => `<div class="ticker"><b>${IND_ROT[k]}</b><span class="q up" title="bateram">▲ ${cont[k].up}</span><span class="q near" title="próximos da meta">▼ ${cont[k].near}</span><span class="q down" title="abaixo da meta">▼ ${cont[k].down}</span>${cont[k].na ? `<span class="q na" title="sem dado">● ${cont[k].na}</span>` : ''}</div>`).join('');
+  return `<div class="panel" style="margin-top:16px">
+    <div class="board-head"><h2 style="margin:0">Quadro de indicadores</h2><button class="linkbtn" data-tab-go="ranking">Ver ranking detalhado</button></div>
+    <div class="tickers">${tick}</div>
+    <div class="scroll-x"><table class="board">
+      <thead><tr><th>Operador</th>
+        <th>Produção<small>mín. ${brlC(P.producao.meta)}</small></th>
+        <th>Lojas ativas<small>mín. ${pct(P.ativacao.meta)}</small></th>
+        <th>B1/B2/B3<small>máx. ${brlC(P.inadimplencia.meta)}</small></th>
+        <th>Recup. DUT<small>mín. ${pct(P.dut.meta)}</small></th>
+        <th>Resultado</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="6" class="muted">Nenhum operador ativo.</td></tr>'}</tbody>
+    </table></div>
+    <div class="legend"><span><b style="color:var(--ok)">▲</b>bateu a meta</span><span><b style="color:var(--warn)">▼</b>até 10% da meta</span><span><b style="color:var(--bad)">▼</b>abaixo da meta</span><span><b>●</b>sem dado</span><span>Em B1/B2/B3 o percentual é a folga (+) ou o excesso (−) em relação ao limite. Metas individuais e exceções valem quando cadastradas.</span></div>
+  </div>`;
+}
+
 function renderPainel() {
   const m = curMonth(); if (!m) return semMes();
   const ap = apurar(m); const t = ap.tot;
@@ -754,15 +845,7 @@ function renderPainel() {
     </div>
     ${reiCard(m, ap, true)}
   </div>
-  <div class="panel" style="margin-top:16px">
-    <div class="sec-head" style="margin-bottom:8px"><h2>Ranking geral</h2><button class="linkbtn" data-tab-go="ranking">Ver detalhes</button></div>
-    <div class="scroll-x"><table class="mini-rank">${top.map(l => `<tr>
-      <td class="pos num">${l.posicao || '—'}</td>
-      <td><div class="opn">${avatar(l.op, 30)}<span>${esc(l.op.nome)}${ap.rk.rei === l.id ? ' 👑' : ''}</span></div></td>
-      <td>${chip(l.r.status)}</td>
-      <td class="right num">${l.r.status === 'habilitado' ? pts(l.r.pontuacao) + ' pts' : brl(l.r.valores.producao)}</td>
-      <td class="right num"><b>${l.r.status === 'habilitado' ? brl(l.r.premio) : 'R$ 0,00'}</b></td></tr>`).join('') || '<tr><td class="muted">Nenhum operador ativo.</td></tr>'}</table></div>
-  </div>`;
+  ${quadroPainel(m, ap)}`;
 }
 
 // TELA 2 — Lançamento
