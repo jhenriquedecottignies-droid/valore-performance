@@ -135,6 +135,30 @@ main{max-width:1320px;margin:0 auto;padding:24px 20px 64px}
 .hits i.up{background:var(--ok)} .hits i.near{background:var(--warn)} .hits i.down{background:var(--bad)}
 .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.8rem;color:var(--muted);margin-top:12px}
 .legend span b{font-weight:800;margin-right:4px}
+.board tfoot td{border-top:2px solid var(--ink);border-bottom:0;background:var(--surface-2);padding-top:12px}
+.board tfoot td.opcell{background:var(--surface-2)}
+.board tfoot .tk-c{display:block;font-size:.74rem;color:var(--muted);margin-top:4px;font-weight:600}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.kpi span{display:block;font-size:.8rem;color:var(--muted);font-weight:600}
+.kpi b{display:block;font-size:1.35rem;margin-top:4px;font-variant-numeric:tabular-nums}
+.kpi small{color:var(--muted);font-size:.8rem}
+.board.res-m{min-width:1080px}
+.board.res-m td.mcell{text-align:left;font-weight:700}
+.charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:16px}
+.charts .wide{grid-column:1/-1}
+@media (max-width:820px){.charts{grid-template-columns:1fr}}
+.charts h3{margin:0 0 2px;font-size:1rem}
+.charts .csub{color:var(--muted);font-size:.8rem;margin:0 0 8px}
+svg.mchart{display:block;width:100%;height:auto;font-family:inherit}
+svg.mchart .gl{stroke:var(--line);stroke-width:1}
+svg.mchart .ax{fill:var(--muted);font-size:11px}
+svg.mchart .vl{fill:var(--ink);font-size:10.5px;font-weight:700}
+svg.mchart .b-up{fill:var(--ok)} svg.mchart .b-near{fill:var(--warn)} svg.mchart .b-down{fill:var(--bad)} svg.mchart .b-neu{fill:#3B7BC0} svg.mchart .b-na{fill:var(--line)}
+svg.mchart .mt{stroke:var(--ink);stroke-width:2;stroke-dasharray:4 3}
+svg.mchart .ln{fill:none;stroke:var(--amber);stroke-width:2.5}
+svg.mchart .dt{fill:var(--amber);stroke:var(--surface);stroke-width:2}
+svg.mchart .lt{fill:var(--amber);font-size:10.5px;font-weight:700}
 .mini-rank{width:100%;border-collapse:collapse}
 .mini-rank td{padding:9px 6px;border-top:1px solid var(--line);vertical-align:middle}
 .mini-rank tr:first-child td{border-top:0}
@@ -292,6 +316,7 @@ svg.chart text{fill:var(--muted);font-size:11px;font-family:var(--sans)}
       <button data-tab="lancamento">Lançamento</button>
       <button data-tab="ranking">Ranking e premiação</button>
       <button data-tab="historico">Histórico</button>
+      <button data-tab="resultados">Resultados mensais</button>
       <button data-tab="config">Configurações</button>
     </nav>
   </div>
@@ -745,7 +770,7 @@ function render() {
   $$('nav.tabs button').forEach(b => b.setAttribute('aria-current', b.dataset.tab === S.tab ? 'page' : 'false'));
   renderMesSel();
   if (!S.config) return renderSemConfig();
-  const fn = { painel: renderPainel, lancamento: renderLancamento, ranking: renderRanking, historico: renderHistorico, config: renderConfig }[S.tab];
+  const fn = { painel: renderPainel, lancamento: renderLancamento, ranking: renderRanking, historico: renderHistorico, resultados: renderResultados, config: renderConfig }[S.tab];
   fn();
 }
 function roBanner() { return S.canWrite ? '' : `<div class="ro-banner">Somente leitura: sua conta não tem permissão de gravação nesta ferramenta.</div>`; }
@@ -760,6 +785,154 @@ function semMes() {
 }
 
 // TELA 1 — Painel
+// Totalizador da equipe por indicador
+function totaisEquipe(m, ap) {
+  const ents = m.entries || {};
+  const T = { producao: 0, metaProd: 0, inad: 0, metaInad: 0, n: { producao: 0, ativacao: 0, inadimplencia: 0, dut: 0 },
+    hit: { producao: 0, ativacao: 0, inadimplencia: 0, dut: 0 }, ops: ap.linhas.length };
+  const pctAgg = { ativacao: { num: 0, den: 0, soma: 0, metas: 0, direto: false }, dut: { num: 0, den: 0, soma: 0, metas: 0, direto: false } };
+  ap.linhas.forEach(l => {
+    const r = l.r, e = ents[l.id] || {};
+    INDICADORES.forEach(k => { if (isNum(r.valores[k])) { T.n[k]++; if (r.atingidos[k]) T.hit[k]++; } });
+    T.metaProd += r.metas.producao;
+    if (isNum(r.valores.producao)) T.producao += r.valores.producao;
+    if (isNum(r.valores.inadimplencia)) { T.inad += r.valores.inadimplencia; T.metaInad += r.metas.inadimplencia; }
+    [['ativacao', 'lojasAtivas', 'lojasTotal'], ['dut', 'dutRec', 'dutElig']].forEach(([k, p, t]) => {
+      if (!isNum(r.valores[k])) return;
+      const a = pctAgg[k]; a.soma += r.valores[k]; a.metas += r.metas[k];
+      if (r.fontes[k] === 'calculado' && isNum(e[p]) && isNum(e[t])) { a.num += e[p]; a.den += e[t]; } else a.direto = true;
+    });
+  });
+  const val = k => { const a = pctAgg[k], n = T.n[k]; if (!n) return { v: null, meta: null, modo: '' };
+    return a.direto || !a.den ? { v: a.soma / n, meta: a.metas / n, modo: 'média' } : { v: a.num * 100 / a.den, meta: a.metas / n, modo: 'ponderado' }; };
+  const at = val('ativacao'), du = val('dut');
+  const nProd = T.n.producao, nInad = T.n.inadimplencia;
+  const r = {
+    valores: { producao: nProd ? T.producao : null, ativacao: at.v, inadimplencia: nInad ? T.inad : null, dut: du.v },
+    metas: { producao: T.metaProd, ativacao: at.meta, inadimplencia: T.metaInad, dut: du.meta }
+  };
+  r.atingidos = {
+    producao: nProd ? T.producao + 1e-9 >= T.metaProd : null, ativacao: at.v === null ? null : at.v + 1e-9 >= at.meta,
+    inadimplencia: nInad ? T.inad <= T.metaInad + 1e-9 : null, dut: du.v === null ? null : du.v + 1e-9 >= du.meta
+  };
+  return { r, T, modo: { ativacao: at.modo, dut: du.modo } };
+}
+function linhaTotalBoard(m, ap) {
+  const { r, T } = totaisEquipe(m, ap); const t = ap.tot;
+  const cells = INDICADORES.map(k => cotacao(k, r).html.replace(/<\/td>$/, `<span class="tk-c">${T.hit[k]} de ${T.ops} bateram</span></td>`)).join('');
+  const st = t.elegiveis ? 'up' : (t.nao ? 'down' : 'na');
+  return `<tfoot><tr><td class="opcell"><div class="opn"><span class="pos num" style="min-width:18px">Σ</span><b>Equipe</b></div><span class="tk-c">${T.ops} operadores</span></td>${cells}
+    <td class="res ${st}"><div class="r1">${brl(t.custo)}</div><div class="r2">${t.elegiveis} habilitado(s) · ${t.nao} não · ${t.pendentes} pendente(s)</div></td></tr></tfoot>`;
+}
+
+// Gráficos mensais da aba Resultados
+function chartMes(dados, o) {
+  const W = 640, H = o.alto || 230, L = 74, R = 12, T = 22, B = 28;
+  const vals = dados.flatMap(d => [d.v, d.meta]).filter(isNum);
+  const bruto = Math.max(o.minMax || 0, ...(vals.length ? vals : [1])) * 1.12 || 1;
+  const p10 = Math.pow(10, Math.floor(Math.log10(bruto / 4))); const passo = [1, 2, 2.5, 5, 10].map(m => m * p10).find(st => bruto / st <= 4) || p10 * 10;
+  const max = Math.ceil(bruto / passo) * passo;
+  const n = dados.length, slot = (W - L - R) / n, bw = Math.min(34, slot * .62);
+  const y = v => T + (H - T - B) * (1 - v / max);
+  let g = '';
+  for (let v = 0; v <= max + 1e-9; v += passo) { const yy = y(v); g += `<line class="gl" x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}"/><text class="ax" x="${L - 6}" y="${yy + 4}" text-anchor="end">${o.eixo(v)}</text>`; }
+  dados.forEach((d, i) => {
+    const cx = L + slot * i + slot / 2;
+    g += `<text class="ax" x="${cx}" y="${H - 8}" text-anchor="middle">${d.label}</text>`;
+    if (isNum(d.v)) {
+      const yy = y(d.v), h = Math.max(1, H - B - yy);
+      g += `<rect class="b-${d.st || 'neu'}" x="${cx - bw / 2}" y="${yy}" width="${bw}" height="${h}" rx="3"><title>${esc(d.tip || '')}</title></rect>`;
+      g += `<text class="vl" x="${cx}" y="${yy - 5}" text-anchor="middle">${o.rot(d.v)}</text>`;
+    } else g += `<rect class="b-na" x="${cx - bw / 2}" y="${H - B - 3}" width="${bw}" height="3" rx="1.5"/>`;
+    if (isNum(d.meta)) { const ym = y(d.meta); g += `<line class="mt" x1="${cx - slot * .45}" x2="${cx + slot * .45}" y1="${ym}" y2="${ym}"/>`; }
+  });
+  if (o.linha) {
+    const p = dados.map((d, i) => isNum(d.l) ? [L + slot * i + slot / 2, y(d.l)] : null).filter(Boolean);
+    if (p.length > 1) g += `<polyline class="ln" points="${p.map(q => q.join(',')).join(' ')}"/>`;
+    dados.forEach((d, i) => { if (!isNum(d.l)) return; const cx = L + slot * i + slot / 2, cy = y(d.l);
+      g += `<circle class="dt" cx="${cx}" cy="${cy}" r="4"/>` + (o.rotLinha ? `<text class="lt" x="${cx + 7}" y="${cy + 14}">${o.rotLinha(d)}</text>` : ''); });
+  }
+  return `<svg class="mchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.aria)}">${g}</svg>`;
+}
+function graficosResultados(ids) {
+  const sel = S.filtros.rmAno;
+  let serie;
+  if (sel) serie = Array.from({ length: 12 }, (_, i) => `${sel}-${String(i + 1).padStart(2, '0')}`);
+  else serie = ids.slice(-12);
+  if (!serie.length) return '';
+  const pts = serie.map(id => S.months[id] ? resumoMes(id) : { id, vazio: true });
+  const lab = id => MESES[+id.slice(5) - 1].slice(0, 3).toLowerCase() + (sel ? '' : '/' + id.slice(2, 4));
+  const stDe = (k, x) => { if (x.vazio) return null; const c = cotacao(k, x.eq.r); return c.st === 'na' ? null : c.st; };
+  const serieInd = k => pts.map(x => ({ label: lab(x.id), v: x.vazio ? null : x.eq.r.valores[k], meta: x.vazio ? null : x.eq.r.metas[k], st: stDe(k, x),
+    tip: x.vazio ? '' : `${mesLabel(x.id)}: ${k === 'producao' || k === 'inadimplencia' ? brl(x.eq.r.valores[k]) : pct(x.eq.r.valores[k])} · ${k === 'inadimplencia' ? 'limite' : 'meta'} ${k === 'producao' || k === 'inadimplencia' ? brl(x.eq.r.metas[k]) : pct(x.eq.r.metas[k])}` }));
+  const mi = v => v >= 1e6 ? f2.format(v / 1e6).replace(/,00$/, '') + ' mi' : v >= 1e3 ? Math.round(v / 1e3) + ' mil' : String(Math.round(v));
+  const p0 = v => Math.round(v) + '%';
+  const prem = pts.map(x => ({ label: lab(x.id), v: x.vazio ? null : x.ap.tot.custo, st: 'neu', l: x.vazio ? null : x.ap.tot.elegiveis, hab: x.vazio ? 0 : x.ap.tot.elegiveis,
+    tip: x.vazio ? '' : `${mesLabel(x.id)}: ${brl(x.ap.tot.custo)} · ${x.ap.tot.elegiveis} habilitado(s)` }));
+  const maxHab = Math.max(1, ...pts.map(x => x.vazio ? 0 : x.ap.tot.elegiveis));
+  const maxPrem = Math.max(1, ...prem.map(d => d.v || 0));
+  prem.forEach(d => { if (isNum(d.l)) d.l = d.l / maxHab * maxPrem; });
+  const per = sel ? `de ${sel}` : 'dos últimos meses';
+  return `<div class="charts">
+    <div class="panel wide"><h3>Produção da equipe mês a mês</h3><p class="csub">Barras: produção paga somada ${per}. Traço tracejado: meta consolidada do mês.</p>
+      ${chartMes(serieInd('producao'), { eixo: v => 'R$ ' + mi(v), rot: mi, aria: 'Produção mensal da equipe comparada à meta', alto: 250 })}</div>
+    <div class="panel"><h3>Lojas ativas da equipe</h3><p class="csub">Percentual de ativação × meta mínima</p>
+      ${chartMes(serieInd('ativacao'), { eixo: p0, rot: v => f2.format(v).replace(/,00$/, '') + '%', aria: 'Ativação de lojas mensal', minMax: 100 })}</div>
+    <div class="panel"><h3>B1/B2/B3 da equipe</h3><p class="csub">Inadimplência somada × limite (quanto menor, melhor)</p>
+      ${chartMes(serieInd('inadimplencia'), { eixo: v => 'R$ ' + mi(v), rot: mi, aria: 'Inadimplência B1/B2/B3 mensal comparada ao limite' })}</div>
+    <div class="panel"><h3>Recuperação DUT da equipe</h3><p class="csub">Percentual recuperado × meta mínima</p>
+      ${chartMes(serieInd('dut'), { eixo: p0, rot: v => f2.format(v).replace(/,00$/, '') + '%', aria: 'Recuperação DUT mensal', minMax: 100 })}</div>
+    <div class="panel"><h3>Premiações e habilitados</h3><p class="csub">Barras: total pago no mês. Linha dourada: quantidade de habilitados (máx. ${maxHab}).</p>
+      ${chartMes(prem, { eixo: v => 'R$ ' + mi(v), rot: v => mi(v), aria: 'Premiação paga por mês e quantidade de habilitados', linha: true, rotLinha: d => d.hab + ' hab.' })}</div>
+  </div>
+  <div class="legend" style="margin:-6px 0 16px"><span><b style="color:var(--ok)">■</b>bateu a meta</span><span><b style="color:var(--warn)">■</b>até 10% da meta</span><span><b style="color:var(--bad)">■</b>abaixo da meta</span><span><b>- - -</b>meta do mês</span><span>Passe o mouse (ou toque) nas barras para ver os valores exatos.</span></div>`;
+}
+
+// TELA — Resultados mensais (totais de cada mês)
+function resumoMes(id) {
+  const m = S.months[id]; const ap = apurar(m); const eq = totaisEquipe(m, ap);
+  const rei = ap.linhas.find(x => x.id === ap.rk.rei);
+  return { id, m, ap, eq, rei };
+}
+function renderResultados() {
+  const anos = [...new Set(Object.keys(S.months).map(id => id.slice(0, 4)))].sort().reverse();
+  const F = S.filtros; if (F.rmAno === undefined) F.rmAno = anos[0] || '';
+  const ids = Object.keys(S.months).sort().filter(id => !F.rmAno || id.startsWith(F.rmAno));
+  const lst = ids.map(resumoMes);
+  const soma = (f) => lst.reduce((s, x) => s + f(x), 0);
+  const prod = soma(x => x.ap.tot.producao), meta = soma(x => x.ap.tot.meta), custo = soma(x => x.ap.tot.custo);
+  const mesesMeta = lst.filter(x => x.eq.r.atingidos.producao).length;
+  const reiCont = {}; lst.forEach(x => { if (x.rei) reiCont[x.rei.op.nome] = (reiCont[x.rei.op.nome] || 0) + 1; });
+  const topRei = Object.entries(reiCont).sort((a, b) => b[1] - a[1])[0];
+  const rows = lst.slice().reverse().map(x => {
+    const t = x.ap.tot, r = x.eq.r;
+    const cells = INDICADORES.map(k => cotacao(k, r).html.replace(/<\/td>$/, `<span class="tk-c">${x.eq.T.hit[k]}/${x.eq.T.ops} bateram</span></td>`)).join('');
+    return `<tr><td class="mcell">${esc(mesLabel(x.id))}<div><span class="chip st-${x.m.status}">${x.m.status === 'encerrado' ? 'Encerrado' : 'Aberto'}</span></div></td>${cells}
+      <td class="num">${t.elegiveis} / ${t.nao} / ${t.pendentes}</td>
+      <td class="res ${t.custo ? 'up' : 'na'}"><div class="r1">${brl(t.custo)}</div></td>
+      <td style="text-align:left">${x.rei ? `<div class="opn">${avatar(x.rei.op, 26)}<span>👑 ${esc(x.rei.op.nome)}</span></div><span class="tk-c">${pts(x.rei.r.pontuacao)} pts</span>` : '<span class="muted">—</span>'}</td></tr>`;
+  }).join('');
+  S._resMes = lst;
+  view.innerHTML = `
+  <div class="sec-head"><div><h1>Resultados mensais</h1><p class="sub">Totais da equipe em cada mês: indicadores consolidados, habilitados, premiação e Rei da Valore.</p></div>
+  <div class="actions"><label class="field" style="min-width:120px">Ano<select data-filtro="rmAno"><option value="">Todos</option>${anos.map(a => `<option ${F.rmAno === a ? 'selected' : ''}>${a}</option>`).join('')}</select></label>
+  <button class="btn" data-act="rmExport" data-fmt="csv">CSV</button><button class="btn" data-act="rmExport" data-fmt="xlsx">Excel</button></div></div>
+  <div class="kpis">
+    <div class="kpi"><span>Produção acumulada</span><b>${brl(prod)}</b><small>${meta ? f2.format(prod * 100 / meta) + '% da meta acumulada' : '—'}</small></div>
+    <div class="kpi"><span>Premiações pagas</span><b>${brl(custo)}</b><small>${lst.length ? 'média de ' + brl(custo / lst.length) + ' por mês' : '—'}</small></div>
+    <div class="kpi"><span>Meses com meta de produção batida</span><b>${mesesMeta} de ${lst.length}</b><small>meta consolidada da equipe</small></div>
+    <div class="kpi"><span>Rei mais frequente</span><b>${topRei ? '👑 ' + esc(topRei[0]) : '—'}</b><small>${topRei ? topRei[1] + ' coroa(s) no período' : 'nenhum Rei no período'}</small></div>
+  </div>
+  ${graficosResultados(Object.keys(S.months).sort())}
+  <div class="panel"><div class="scroll-x"><table class="board res-m">
+    <thead><tr><th>Mês</th><th>Produção<small>soma × meta</small></th><th>Lojas ativas<small>equipe × meta</small></th><th>B1/B2/B3<small>soma × limite</small></th><th>Recup. DUT<small>equipe × meta</small></th><th>Habilit. / Não / Pend.</th><th>Premiação</th><th style="text-align:left">Rei da Valore</th></tr></thead>
+    <tbody>${rows || '<tr><td colspan="8" class="muted">Nenhum mês no período.</td></tr>'}</tbody>
+    ${lst.length ? `<tfoot><tr><td class="mcell">Total ${F.rmAno || 'geral'}</td><td><span class="tk-v">${brlC(prod)}</span><span class="tk-c">meta ${brlC(meta)}</span></td><td></td><td><span class="tk-v">${brlC(soma(x => x.eq.r.valores.inadimplencia || 0))}</span></td><td></td>
+      <td class="num">${soma(x => x.ap.tot.elegiveis)} / ${soma(x => x.ap.tot.nao)} / ${soma(x => x.ap.tot.pendentes)}</td><td class="res up"><div class="r1">${brl(custo)}</div></td><td></td></tr></tfoot>` : ''}
+  </table></div>
+  <div class="legend"><span><b style="color:var(--ok)">▲</b>equipe bateu a meta consolidada</span><span><b style="color:var(--warn)">▼</b>até 10% da meta</span><span><b style="color:var(--bad)">▼</b>abaixo da meta</span><span>Lojas ativas e DUT da equipe são calculados pelo total de lojas e DUTs; quando algum operador tem o percentual informado direto, usa-se a média.</span></div></div>`;
+}
+
 // Quadro estilo bolsa: indicadores por operador
 function brlC(v) {
   const a = Math.abs(v);
@@ -817,6 +990,7 @@ function quadroPainel(m, ap) {
         <th>Recup. DUT<small>mín. ${pct(P.dut.meta)}</small></th>
         <th>Resultado</th></tr></thead>
       <tbody>${rows || '<tr><td colspan="6" class="muted">Nenhum operador ativo.</td></tr>'}</tbody>
+      ${linhas.length ? linhaTotalBoard(m, ap) : ''}
     </table></div>
     <div class="legend"><span><b style="color:var(--ok)">▲</b>bateu a meta</span><span><b style="color:var(--warn)">▼</b>até 10% da meta</span><span><b style="color:var(--bad)">▼</b>abaixo da meta</span><span><b>●</b>sem dado</span><span>Em B1/B2/B3 o percentual é a folga (+) ou o excesso (−) em relação ao limite. Metas individuais e exceções valem quando cadastradas.</span></div>
   </div>`;
@@ -1254,7 +1428,7 @@ view.addEventListener('input', e => {
 view.addEventListener('change', async e => {
   const t = e.target;
   if (t.matches('select[data-op-f]')) { const o = S.cfgDraft.operadores.find(o => o.id === t.closest('tr').dataset.opcfg); o.status = t.value; }
-  if (t.dataset.filtro) { S.filtros[t.dataset.filtro] = t.value; renderHistorico(); }
+  if (t.dataset.filtro) { S.filtros[t.dataset.filtro] = t.value; render(); }
   if (t.dataset.foto) {
     const f = t.files[0]; if (!f) return;
     try { const url = await reduzirFoto(f); S.cfgDraft.operadores.find(o => o.id === t.dataset.foto).foto = url; renderConfig(); }
@@ -1316,6 +1490,17 @@ view.addEventListener('click', async e => {
       const P = m.params; const par = [...INDICADORES.map(k => ({ Parâmetro: NOMES[k], Meta: P.indicadores[k].meta, Peso: P.indicadores[k].peso, 'Limite extras': P.indicadores[k].limite })), ...P.faixas.map(f => ({ Parâmetro: 'Faixa ' + f.nome, Meta: f.min, Peso: '', 'Limite extras': '', 'Premiação (R$)': f.valor }))];
       await exportXLSX(`valore-apuracao-${m.id}.xlsx`, [['Apuração ' + m.id, rows], ['Parâmetros do mês', par], ['Registro', (m.log || []).map(g => ({ Data: new Date(g.em).toLocaleString('pt-BR'), Registro: g.texto }))]]); break; }
     case 'exportPDFMes': { const { ap, rows } = linhasMesTabela(m); await exportPDF(`valore-apuracao-${m.id}.pdf`, 'Apuração de premiação — ' + mesLabel(m.id), resumoMesTxt(m, ap), rows.map(r => { const c = { ...r }; delete c['Região']; return c; })); break; }
+    case 'rmExport': {
+      const rows = (S._resMes || []).map(x => { const r = x.eq.r, t = x.ap.tot; return {
+        'Mês': x.id, 'Situação': x.m.status === 'encerrado' ? 'Encerrado' : 'Aberto',
+        'Produção (R$)': num2(r.valores.producao), 'Meta produção (R$)': num2(r.metas.producao),
+        'Lojas ativas equipe (%)': num2(r.valores.ativacao), 'B1/B2/B3 (R$)': num2(r.valores.inadimplencia), 'Limite B1/B2/B3 (R$)': num2(r.metas.inadimplencia),
+        'Recuperação DUT equipe (%)': num2(r.valores.dut), 'Habilitados': t.elegiveis, 'Não habilitados': t.nao, 'Pendentes': t.pendentes,
+        'Premiação total (R$)': t.custo, 'Rei da Valore': x.rei ? x.rei.op.nome : '' }; });
+      const nome = 'valore-resultados-mensais' + (S.filtros.rmAno ? '-' + S.filtros.rmAno : '');
+      if (b.dataset.fmt === 'xlsx') await exportXLSX(nome + '.xlsx', [['Resultados mensais', rows]]);
+      else await salvarArquivo(nome + '.csv', csvDe(rows), 'text/csv');
+      break; }
     case 'hExport': {
       const rows = (S._hist || []).map(x => ({ 'Mês': x.mes, 'Operador': x.op.nome, 'Produção paga (R$)': num2(x.r.valores.producao), 'Status': STATUS_TXT[x.r.status], 'Pontuação': x.r.status === 'habilitado' ? num2(x.r.pontuacao) : '', 'Categoria': x.r.faixa?.nome || '', 'Premiação (R$)': x.r.premio, 'Rei da Valore': x.rei ? 'sim' : '', 'Mês encerrado': x.status === 'encerrado' ? 'sim' : 'não' }));
       const F = S.filtros; const suf = [F.ano, F.mes, F.op && opPorId(F.op)?.nome].filter(Boolean).join('-') || 'completo';
@@ -1360,7 +1545,7 @@ window.addEventListener('pagehide', () => { flushAll(); });
 
 // ---------- Início ----------
 const hashTab = (location.hash || '').slice(1);
-if (['painel', 'lancamento', 'ranking', 'historico', 'config'].includes(hashTab)) S.tab = hashTab;
+if (['painel', 'lancamento', 'ranking', 'historico', 'resultados', 'config'].includes(hashTab)) S.tab = hashTab;
 
 // ---------- Acesso (login no Supabase) ----------
 let iniciado = false;
